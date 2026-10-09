@@ -15,6 +15,7 @@ Use the next unused higher semantic version for subsequent releases. The command
 Monitor the Checks and release workflow. Hosted Ubuntu jobs install reproducibly, run Chromium/Firefox and isolated-world checks, scan reachable history, package artifacts and verify update metadata, notices, hashes and provenance. Only tag publication gets repository write permission. PRs never publish or receive a Lexirise key.
 
 The tag workflow publishes:
+
 - emulingo-lexirise.user.js — fixed stable installation/download name
 - emulingo-lexirise.meta.js — fixed metadata-only update check
 - a versioned .user.js and installer ZIP for rollback

@@ -15,6 +15,7 @@ The script supports both mobile and desktop feeds; the extension manager determi
 ## Automatic updates
 
 The metadata header contains:
+
 - updateURL: https://github.com/Firebird55/Emulingo-Lexirise-userscript/releases/latest/download/emulingo-lexirise.meta.js
 - downloadURL: https://github.com/Firebird55/Emulingo-Lexirise-userscript/releases/latest/download/emulingo-lexirise.user.js
 
