@@ -13,6 +13,7 @@ From a clean main checkout:
 4. Verify SHA256SUMS and PROVENANCE.json sourceCommit against the annotated tag's commit.
 5. npm run shared:update -- --version 1.0.0 --all.
 The update command uses the existing gh login, verifies checksum and source revision, imports both siblings, refreshes their lockfiles, runs checks and commits generated changes. CI requires no private cross-repository credentials.
+It invalidates stale local-package lock metadata, uses a fresh npm ci installation, and compares every installed shared file with the verified vendor payload before building. Stop the toolkit companion before this command and restart it after verification so Windows does not lock its built frontend.
 
 ## Public-reference change check for agents
 Run npm run lexirise:watch. The report in .watch/ covers API/AI docs and publicly shipped UI bundle changes, including settings/lookup/language options. It is an advisory change detector, not a semantic guarantee or an automatic code updater. Exit 2 means inspect the official reference and published UI changes. Review capability data, transport contracts, lookup parity and tests. No authenticated account request is made.
