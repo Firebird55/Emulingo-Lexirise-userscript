@@ -6,7 +6,7 @@ export function privateContent(text){
  || /(?:[A-Z]:[\\/]+tools[\\/]+)/i.test(text)
  || /lx_[A-Za-z0-9]{40,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}/.test(text);
 }
-export function publicIdentity(email){return /^[^\s<>]+@users\.noreply\.github\.com$/.test(email);}
+export function publicIdentity(email){return email==='noreply@github.com'||/^[^\s<>]+@users\.noreply\.github\.com$/.test(email);}
 if(process.argv[1]?.replaceAll('\\','/').endsWith('/public-audit.mjs')){
  execFileSync(process.execPath,['scripts/secret-check.mjs'],{stdio:'inherit'});
  const refs=git('for-each-ref','--format=%(refname)').trim().split('\n').filter(Boolean);

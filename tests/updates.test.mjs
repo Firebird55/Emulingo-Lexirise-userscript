@@ -12,5 +12,6 @@ test('privacy audit rejects private profiles, secret-shaped values and personal 
  assert(privateContent('C:'+String.fromCharCode(92)+'Users'+String.fromCharCode(92)+'example'+String.fromCharCode(92)+'capture'));
  assert(privateContent('lx_'+'x'.repeat(60)));assert(!privateContent(readFileSync('README.md','utf8')));
  assert(!publicIdentity('person@example.org'));assert(publicIdentity('123+example@users.noreply.github.com'));
+ assert(publicIdentity('noreply@github.com')); // GitHub's synthetic PR merge commit.
 });
 

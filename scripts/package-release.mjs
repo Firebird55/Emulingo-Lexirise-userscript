@@ -4,6 +4,7 @@ import {mkdirSync,readFileSync,writeFileSync,copyFileSync,readdirSync,cpSync,sta
 import {createHash} from 'node:crypto';
 import {installerBundle} from './installer-bundle.mjs';
 const pkg=JSON.parse(readFileSync('package.json','utf8')),version=pkg.version;
+if(process.env.GITHUB_REF?.startsWith('refs/tags/')&&process.env.GITHUB_REF!=='refs/tags/v'+version)throw new Error('Release tag and package version differ');
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const repository=process.env.GITHUB_REPOSITORY||({ '@firebird55/lexirise-components':'Firebird55/Lexirise-shared-components','emulingo-lexirise':'Firebird55/Emulingo-Lexirise-userscript','game-immersion-toolkit':'Firebird55/Game-immersion-toolkit'}[pkg.name]);
 const provenance={version,sourceCommit:sha,repository,shared:pkg.name==='@firebird55/lexirise-components'?null:JSON.parse(readFileSync('vendor/lexirise-components/PROVENANCE.json','utf8'))};

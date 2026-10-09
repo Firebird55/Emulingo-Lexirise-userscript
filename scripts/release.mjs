@@ -7,6 +7,10 @@ const version=process.argv[process.argv.indexOf('--version')+1];
 if(!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version??''))throw new Error('Use npm run release -- --version <semver>.');
 if(git('status','--porcelain'))throw new Error('Release requires a clean checkout. Commit completed work first.');
 if(git('branch','--show-current')!=='main')throw new Error('Release from main.');
+const current=JSON.parse(readFileSync('package.json','utf8')).version;
+const nextParts=version.split('-')[0].split('.').map(Number),oldParts=current.split('-')[0].split('.').map(Number);
+const first=nextParts.findIndex((part,i)=>part!==oldParts[i]);
+if(first<0||nextParts[first]<oldParts[first])throw new Error('Use a higher base semantic version than '+current+'.');
 try{git('rev-parse','--verify','refs/tags/v'+version);throw new Error('Version already tagged.');}catch(e){if(e.message==='Version already tagged.')throw e;}
 run(process.execPath,['scripts/verify-vendor.mjs']);run('npm',['run','check']);run('npm',['run','audit:public']);run('npm',['run','test:browser']);run('npm',['run','test:firefox']);
 const pkg=JSON.parse(readFileSync('package.json','utf8'));pkg.version=version;writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');
