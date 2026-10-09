@@ -20,6 +20,17 @@ try{
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Game controls and feed do not overflow horizontally');
   await page.locator('.word-sheet').evaluate(node=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   let bounds=await page.locator('.word-sheet').boundingBox();assert(bounds&&bounds.x>=-1&&bounds.y>=-1&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,name+' lookup fits '+width+'x'+height+' '+JSON.stringify(bounds));
+  const expectedWidth=Math.min(width<=560?340:400,width-32),heightCap=width<=560?Math.min(360,height*.6):320;
+  assert(Math.abs(bounds.width-expectedWidth)<=1,name+' compact lookup width '+bounds.width);
+  assert(bounds.height<=heightCap+1,name+' compact lookup height '+bounds.height);
+  assert.equal(await page.locator('.word-sheet-body').evaluate(n=>getComputedStyle(n).fontSize),'13px','Popup type is independent of transcript font size');
+  if(zoom===1&&pw===1920){
+   await page.locator('.word-dictionary').first().waitFor();
+   const body=await page.locator('.word-sheet-body').evaluate(n=>({scroll:n.scrollHeight,height:n.clientHeight}));
+   assert(body.scroll>body.height,'Long dictionary content scrolls inside a bounded lookup');
+   await page.locator('.word-sheet-body').evaluate(n=>{n.scrollTop=n.scrollHeight;});
+   assert(await page.locator('.word-sheet-body').evaluate(n=>n.scrollTop>0),'Dictionary bottom remains accessible');
+  }
   assert.equal(await page.locator('.word-sheet').evaluate(n=>n.getRootNode() instanceof ShadowRoot),true);
   for(const tab of ['Context','Examples','Similar','Components','Grammar','Definition'])await page.getByRole('tab',{name:tab,exact:true}).click();
   await page.keyboard.press('Escape');await page.locator('.word-sheet').waitFor({state:'hidden'});
