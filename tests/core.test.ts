@@ -98,6 +98,18 @@ test('native pinyin/chips are suppressed even without a key; only expanded Manda
   const reused=document.querySelector<HTMLElement>('[data-lx-native-pinyin]')!;reused.classList.remove('italic');reused.textContent='你好';suppressNative(feed);assert.equal(reused.hasAttribute('data-lx-native-pinyin'),false);
 });
 
+test('native grammar selector excludes translations, controls and unrelated small text, including recycled nodes',async()=>{
+ const {NATIVE_GRAMMAR_SELECTOR}=await import('../src/main');
+ document.body.innerHTML='<div class="translation-feed"><div class="translation-item"><div class="translation-regions"><div><p class="text-tr-xs" id="source">你好</p><p class="text-tr-xs" id="english">Hello</p></div></div><p class="text-tr-xs" id="grammar">A grammar explanation.</p><div class="translation-actions"><p class="text-tr-xs">Was this accurate?</p><button>Play</button></div><p class="text-tr-xs">Unrelated note.</p></div></div><p class="text-tr-xs">Outside the feed.</p>';
+ assert.deepEqual([...document.querySelectorAll(NATIVE_GRAMMAR_SELECTOR)].map(n=>n.id),['grammar']);
+ const explanation=document.querySelector<HTMLElement>('#grammar')!;
+ explanation.textContent='An updated explanation.';assert(explanation.matches(NATIVE_GRAMMAR_SELECTOR));
+ explanation.classList.add('italic');assert(!explanation.matches(NATIVE_GRAMMAR_SELECTOR));explanation.classList.remove('italic');
+ document.querySelector('.translation-regions > div')!.append(explanation);assert(!explanation.matches(NATIVE_GRAMMAR_SELECTOR),'Reused translation nodes are not hidden');
+ document.querySelector('.translation-regions')!.insertAdjacentHTML('afterend','<p id="new-grammar" class="text-tr-xs">New explanation.</p>');
+ assert.deepEqual([...document.querySelectorAll(NATIVE_GRAMMAR_SELECTOR)].map(n=>n.id),['new-grammar']);
+});
+
 test('panel routes ignore pairing codes and use the second-screen Settings tab without touching other views',async()=>{
  const {isSupportedPage,settingsAnchors}=await import('../src/main');
  for(const url of ['https://emulingo.com/play','https://emulingo.com/panel','https://emulingo.com/panel?code=fixture-A','https://emulingo.com/panel?code=another-code&view=translations','https://emulingo.com/panel/'])assert(isSupportedPage(new URL(url).pathname));

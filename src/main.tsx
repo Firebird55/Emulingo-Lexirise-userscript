@@ -21,7 +21,11 @@ export function settingsAnchors(scope:ParentNode=document,pathname=location.path
  return [...new Set(anchors)];
 }
 type Line={id:number,text:string,language:StudyLanguage,source:HTMLElement,host:HTMLElement,root:Root,english?:HTMLElement};
+// Emulingo renders its explanation immediately after the source/translation regions.
+// Structural CSS also handles streamed/replaced cards without credentials or stale markers.
+export const NATIVE_GRAMMAR_SELECTOR='.translation-feed .translation-item .translation-regions + p.text-tr-xs:not(.italic)';
 const nativeCss=`
+${NATIVE_GRAMMAR_SELECTOR} { display:none!important; }
 .translation-feed [data-lx-native-pinyin],.translation-feed [data-lx-vocab],.translation-feed [data-lx-original],.translation-feed [data-lx-english-hidden] { display:none!important; }
 .lexirise-settings-button { flex:none!important; cursor:pointer; }
 .lexirise-settings-button svg { pointer-events:none; }

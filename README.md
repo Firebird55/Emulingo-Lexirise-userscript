@@ -18,6 +18,7 @@ Language-aware readings and word lookups for **[Emulingo](https://emulingo.com)*
 - Account settings reload/save/discard. Local display options apply immediately; only **Save to Lexirise** writes account preferences.
 - Desktop sidebar and mobile layouts, touch targets, narrow screens, landscape and browser zoom. Native Emulingo controls remain available.
 - Second-screen support on `/panel` for any pairing code; Lexirise settings sit beside the panel's native Settings tab.
+- Hides Emulingo's inline grammar explanations on `/play` and `/panel`, even before connecting a key. Translations and native actions remain; Lexirise's lookup Grammar tab is still available.
 
 ## Quick start
 

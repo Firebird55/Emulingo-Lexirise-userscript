@@ -14,6 +14,10 @@ try{
   // Landscape phones legitimately show only a small scrollable feed beneath the game.
   // Scroll the current native card into view, just as a user would, before lazy analysis.
   await page.locator('#current').evaluate(n=>n.scrollIntoView({block:'start'}));
+  await page.locator('#native-grammar').waitFor({state:'hidden'});
+  assert.equal(await page.locator('#native-grammar').count(),1,'Explanation is hidden, not deleted');
+  assert.equal(await page.locator('#current p.text-tr-lg').last().isVisible(),true,'Native English translation remains visible');
+  assert.equal(await page.locator('#current .translation-actions button').first().isVisible(),true,'Native card actions remain visible');
   await page.locator('.reading-hanzi').first().click();await page.locator('.word-sheet').waitFor();
   assert.equal(await page.locator(mode==='panel'?'nav[aria-label="Second screen views"]':width>=900?'.desktop-controls':'.mobile-controls').isVisible(),true,'Correct Emulingo host layout');
   assert(await page.locator('.translation-feed').evaluate(n=>n.scrollWidth<=n.clientWidth+1),'Reader fits its translation-feed container');
@@ -54,6 +58,7 @@ try{
    await page.getByRole('button',{name:'Settings',exact:true}).click();assert.equal(await page.locator('#native-state').textContent(),'Native Settings opened');assert.equal(await dialog.count(),0);
    await page.getByRole('button',{name:'Flashcards',exact:true}).click();await page.locator('[data-lx-reader]').waitFor({state:'hidden'});assert.equal(await page.locator('button[aria-label="Open Lexirise settings"]').count(),1);
    await page.getByRole('button',{name:'Translations',exact:true}).click();await page.locator('.reading-hanzi').first().waitFor();assert.equal(await page.locator('#current [data-lx-reader]').count(),2,'Speaker and dialogue enhanced once each');
+   await page.locator('#native-grammar').waitFor({state:'hidden'});
    await page.getByRole('button',{name:'Delete translation',exact:true}).last().click();assert.equal(await page.locator('#native-state').textContent(),'Native translation deleted');
    await page.evaluate(()=>{history.pushState({},'', '/panel?code=changed-code');dispatchEvent(new PopStateEvent('popstate'));});
    await page.locator('.reading-hanzi').first().click();await page.locator('.word-sheet').waitFor();await page.keyboard.press('Escape');
@@ -61,6 +66,15 @@ try{
    await page.evaluate(()=>{history.pushState({},'', '/panel');dispatchEvent(new PopStateEvent('popstate'));});await page.locator('.reading-hanzi').first().waitFor();
   }
   if(zoom===1&&pw===1920){
+   if(mode==='play'){
+    await page.locator('button[aria-label="Add fixture translation"]:visible').click();
+    const card=page.locator('.translation-item').last();
+    await card.locator('.reading-hanzi').first().waitFor();
+    assert.equal(await card.locator('p.text-tr-xs').isVisible(),false,'New explanations stay hidden');
+    assert.equal(await card.locator('p.text-tr-lg').isVisible(),true,'New translations stay visible');
+    await page.getByRole('button',{name:'Play pronunciation',exact:true}).click();
+    assert.equal(await page.locator('#native-state').textContent(),'Native actions: 1');
+   }
    for(const[w,h]of [[320,568],[1280,720],[568,320],[900,720],[390,844]]){
     await page.setViewportSize({width:w,height:h});
     const button=page.locator('button[aria-label="Open Lexirise settings"]:visible');await button.click();await dialog.waitFor();
@@ -71,6 +85,18 @@ try{
   }
   console.log(name+' '+mode+': '+width+'x'+height+' zoom/DPR '+zoom+' passed');await context.close();
  }
+ }
+ // Native cleanup does not require an API key or successful analysis.
+ for(const mode of ['play','panel']){
+  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
+  await page.goto('http://127.0.0.1:'+port+'/'+mode+'?no-key');
+  await page.locator('button[aria-label="Open Lexirise settings"]:visible').waitFor();
+  assert.equal(await page.locator('#native-grammar').count(),1);
+  await page.locator('#native-grammar').waitFor({state:'hidden'});
+  assert.equal(await page.locator('#current p.text-tr-lg').last().isVisible(),true,'No-key English stays visible');
+  await page.locator('#current [data-lx-reader] .current-chinese').last().waitFor();
+  assert.match(await page.locator('#current [data-lx-reader] .current-chinese').last().textContent(),/对了，隔壁/,'No-key fallback keeps source text visible');
+  await context.close();
  }
  }finally{await browser.close();}
  }
