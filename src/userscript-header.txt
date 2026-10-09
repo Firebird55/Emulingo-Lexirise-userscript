@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Emulingo Lexirise
 // @namespace    emulingo-lexirise
-// @version      1.2.2
+// @version      1.2.3
 // @description  Language readings, word lookups and synchronized Lexirise settings for Emulingo on mobile and desktop.
 // @author       Firebird55
 // @copyright    2026 Firebird55
