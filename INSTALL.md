@@ -6,6 +6,8 @@ Enable a supported userscript manager such as [Tampermonkey](https://www.tamperm
 
 Reload https://emulingo.com/play, open Lexirise settings beside the native settings button, and enter your own Lexirise API key. No Node.js, GitHub login or local game files are needed.
 
+The second-screen panel is also supported at `https://emulingo.com/panel?code=<your-code>` for any code (or without a code). Its Lexirise button appears beside the native Settings tab. Pair the panel normally through Emulingo; this script does not bypass pairing or authenticate a game session.
+
 ## Mobile
 
 Use a userscript manager supported by your mobile browser. Safari users can consult [Userscripts' platform instructions](https://github.com/quoid/userscripts). Open the install link or import the downloaded .user.js, enable the manager for Emulingo, then reload the play page. Not every mobile browser supports userscripts.

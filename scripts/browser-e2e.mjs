@@ -6,15 +6,16 @@ await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error
 try{
  for(const[name,engine]of [['chromium',chromium],['firefox',firefox]]){
  const browser=await engine.launch({headless:true});try{
+ for(const mode of ['play','panel']){
  for(const[pw,ph,zoom]of [[1920,1080,1],[1920,1080,1.25],[1280,720,1.5],[1280,720,2],[390,844,1],[320,568,1],[568,320,1],[900,720,1],[768,1024,1.25],[3840,2160,2]]){
   const width=Math.floor(pw/zoom),height=Math.floor(ph/zoom),context=await browser.newContext({viewport:{width,height},deviceScaleFactor:zoom,hasTouch:width<=568}),page=await context.newPage(),writes=[];
   page.on('request',r=>{if(r.url().includes('/v1/settings')&&r.method()==='PATCH')writes.push(r.postDataJSON());});
-  await page.goto('http://127.0.0.1:'+port+'/play');
+  await page.goto('http://127.0.0.1:'+port+'/'+mode+(mode==='panel'?'?code=fixture-'+pw+'-'+zoom:''));
   // Landscape phones legitimately show only a small scrollable feed beneath the game.
   // Scroll the current native card into view, just as a user would, before lazy analysis.
   await page.locator('#current').evaluate(n=>n.scrollIntoView({block:'start'}));
   await page.locator('.reading-hanzi').first().click();await page.locator('.word-sheet').waitFor();
-  assert.equal(await page.locator(width>=900?'.desktop-controls':'.mobile-controls').isVisible(),true,'Correct Emulingo host layout');
+  assert.equal(await page.locator(mode==='panel'?'nav[aria-label="Second screen views"]':width>=900?'.desktop-controls':'.mobile-controls').isVisible(),true,'Correct Emulingo host layout');
   assert(await page.locator('.translation-feed').evaluate(n=>n.scrollWidth<=n.clientWidth+1),'Reader fits its translation-feed container');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Game controls and feed do not overflow horizontally');
   await page.locator('.word-sheet').evaluate(node=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -38,6 +39,16 @@ try{
    await page.getByLabel('fontSize',{exact:true}).selectOption('sm');await page.getByRole('button',{name:'Discard account changes',exact:true}).click();assert.equal(await page.getByLabel('fontSize',{exact:true}).inputValue(),font);
   }
   await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+  if(mode==='panel'&&zoom===1&&pw===1920){
+   await page.getByRole('button',{name:'Settings',exact:true}).click();assert.equal(await page.locator('#native-state').textContent(),'Native Settings opened');assert.equal(await dialog.count(),0);
+   await page.getByRole('button',{name:'Flashcards',exact:true}).click();await page.locator('[data-lx-reader]').waitFor({state:'hidden'});assert.equal(await page.locator('button[aria-label="Open Lexirise settings"]').count(),1);
+   await page.getByRole('button',{name:'Translations',exact:true}).click();await page.locator('.reading-hanzi').first().waitFor();assert.equal(await page.locator('#current [data-lx-reader]').count(),2,'Speaker and dialogue enhanced once each');
+   await page.getByRole('button',{name:'Delete translation',exact:true}).last().click();assert.equal(await page.locator('#native-state').textContent(),'Native translation deleted');
+   await page.evaluate(()=>{history.pushState({},'', '/panel?code=changed-code');dispatchEvent(new PopStateEvent('popstate'));});
+   await page.locator('.reading-hanzi').first().click();await page.locator('.word-sheet').waitFor();await page.keyboard.press('Escape');
+   await page.evaluate(()=>{history.pushState({},'', '/unrelated');dispatchEvent(new PopStateEvent('popstate'));});await page.locator('[data-lx-reader]').first().waitFor({state:'hidden'});
+   await page.evaluate(()=>{history.pushState({},'', '/panel');dispatchEvent(new PopStateEvent('popstate'));});await page.locator('.reading-hanzi').first().waitFor();
+  }
   if(zoom===1&&pw===1920){
    for(const[w,h]of [[320,568],[1280,720],[568,320],[900,720],[390,844]]){
     await page.setViewportSize({width:w,height:h});
@@ -47,7 +58,8 @@ try{
     assert(await page.locator('.translation-feed').evaluate(n=>n.scrollWidth<=n.clientWidth+1),'Resize keeps reader inside feed');
    }
   }
-  console.log(name+': '+width+'x'+height+' zoom/DPR '+zoom+' passed');await context.close();
+  console.log(name+' '+mode+': '+width+'x'+height+' zoom/DPR '+zoom+' passed');await context.close();
+ }
  }
  }finally{await browser.close();}
  }

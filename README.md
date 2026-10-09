@@ -17,12 +17,14 @@ Language-aware readings and word lookups for **[Emulingo](https://emulingo.com)*
 - Language-aware settings for 31 Lexirise study languages, with an explicit content-language override when Emulingo metadata is missing.
 - Account settings reload/save/discard. Local display options apply immediately; only **Save to Lexirise** writes account preferences.
 - Desktop sidebar and mobile layouts, touch targets, narrow screens, landscape and browser zoom. Native Emulingo controls remain available.
+- Second-screen support on `/panel` for any pairing code; Lexirise settings sit beside the panel's native Settings tab.
 
 ## Quick start
 
 1. Enable a supported userscript manager: [Tampermonkey](https://www.tampermonkey.net), [Violentmonkey](https://violentmonkey.github.io), or [Userscripts for Safari](https://github.com/quoid/userscripts).
 2. Open the **[install link](https://github.com/Firebird55/Emulingo-Lexirise-userscript/releases/latest/download/emulingo-lexirise.user.js)**, review the script and approve installation in your manager.
 3. Visit [Emulingo play](https://emulingo.com/play), then open **Lexirise settings** beside Emulingo's settings button.
+   The paired second screen at `https://emulingo.com/panel?code=<your-code>` works too, without restricting the code.
 4. Enter your own Lexirise API key. Features require the access provided by your Lexirise account; this project does not bypass service plans or limits.
 
 No Node.js or local game files are needed for the normal userscript install. If the browser downloads the file instead, import it using the manager dashboard. Mobile manager availability and update scheduling vary by browser; see [INSTALL.md](INSTALL.md).

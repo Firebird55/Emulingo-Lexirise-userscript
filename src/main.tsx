@@ -9,6 +9,17 @@ import readerCss from '@firebird55/lexirise-components/styles.css';
 import {isStudyLanguage, type StudyLanguage} from '@firebird55/lexirise-components';
 
 const MARKER='data-emulingo-lexirise';
+// Query parameters (including second-screen pairing codes) never gate support.
+export function isSupportedPage(pathname:string){return /^\/(?:play|panel)(?:\/|$)/.test(pathname);}
+export function settingsAnchors(scope:ParentNode=document,pathname=location.pathname):HTMLButtonElement[]{
+ const anchors=[...scope.querySelectorAll<HTMLButtonElement>('#app button[aria-label="Open settings"]')];
+ if(/^\/panel(?:\/|$)/.test(pathname)){
+  for(const button of scope.querySelectorAll<HTMLButtonElement>('#app nav[aria-label="Second screen views"] button')){
+   if(button.textContent?.trim()==='Settings')anchors.push(button);
+  }
+ }
+ return [...new Set(anchors)];
+}
 type Line={id:number,text:string,language:StudyLanguage,source:HTMLElement,host:HTMLElement,root:Root,english?:HTMLElement};
 const nativeCss=`
 .translation-feed [data-lx-native-pinyin],.translation-feed [data-lx-vocab],.translation-feed [data-lx-original],.translation-feed [data-lx-english-hidden] { display:none!important; }
@@ -102,7 +113,7 @@ export async function start(){
     event.preventDefault();event.stopPropagation();showSettings();
   },true);
   function syncButtons(){
-    for(const button of document.querySelectorAll<HTMLButtonElement>('button[aria-label="Open settings"]')){
+    for(const button of settingsAnchors()){
       if(!button.closest('#app')||button.nextElementSibling?.classList.contains('lexirise-settings-button'))continue;
       const added=document.createElement('button');added.type='button';added.className=button.className+' lexirise-settings-button';added.setAttribute('aria-label','Open Lexirise settings');added.title='Lexirise reading options';
       added.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a4 4 0 0 0-4-2H4zM20 4h-3a3 3 0 0 0-3 3v13a4 4 0 0 1 4-2h2z"/><path d="M7 8h3M7 11h3M17 8h1M17 11h1"/></svg>';
@@ -114,13 +125,13 @@ export async function start(){
     for(const entry of entries){if(!entry.isIntersecting)continue;const source=entry.target as HTMLElement;viewportObserver.unobserve(source);enhance(source);}
   },{rootMargin:'160px'});
   function enhance(source:HTMLElement){
-    if(!source.isConnected||lines.has(source)||!ready)return;
+    if(!isSupportedPage(location.pathname)||!source.isConnected||lines.has(source)||!ready)return;
     const text=source.textContent||'';const host=document.createElement('span');host.dataset.lxReader='';
     const english=findEnglish(source);const {content}=mountShadow(host);const line:Line={id:nextId++,text,language:contentLanguage(source)??'zh',source,host,english,root:createRoot(content)};
     lines.set(source,line);source.after(host);source.dataset.lxOriginal='';render(line);
   }
   function scan(){
-    const active=/^\/play(?:\/|$)/.test(location.pathname);
+    const active=isSupportedPage(location.pathname);
     for(const [source,line]of lines){
       if(!active||!source.isConnected||!line.host.isConnected||!contentLanguage(source)){
         line.root.unmount();line.host.remove();delete source.dataset.lxOriginal;if(line.english)delete line.english.dataset.lxEnglishHidden;lines.delete(source);continue;

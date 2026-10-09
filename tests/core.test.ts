@@ -97,3 +97,14 @@ test('native pinyin/chips are suppressed even without a key; only expanded Manda
   document.querySelector('.translation-item')!.insertAdjacentHTML('beforeend','<p class="text-tr-xl italic">péng you</p>');suppressNative(feed);assert.equal(document.querySelectorAll('[data-lx-native-pinyin]').length,2);
   const reused=document.querySelector<HTMLElement>('[data-lx-native-pinyin]')!;reused.classList.remove('italic');reused.textContent='你好';suppressNative(feed);assert.equal(reused.hasAttribute('data-lx-native-pinyin'),false);
 });
+
+test('panel routes ignore pairing codes and use the second-screen Settings tab without touching other views',async()=>{
+ const {isSupportedPage,settingsAnchors}=await import('../src/main');
+ for(const url of ['https://emulingo.com/play','https://emulingo.com/panel','https://emulingo.com/panel?code=fixture-A','https://emulingo.com/panel?code=another-code&view=translations','https://emulingo.com/panel/'])assert(isSupportedPage(new URL(url).pathname));
+ for(const pathname of ['/','/panelish','/players','/settings'])assert(!isSupportedPage(pathname));
+ document.body.innerHTML='<div id="app"><nav aria-label="Second screen views"><button>Translations</button><button>Flashcards</button><button id="panel-settings">Settings</button></nav></div><button>Settings</button>';
+ assert.deepEqual(settingsAnchors(document,'/panel').map(b=>b.id),['panel-settings']);
+ assert.equal(settingsAnchors(document,'/play').length,0);
+ document.querySelector('#app')!.insertAdjacentHTML('beforeend','<button id="play-settings" aria-label="Open settings">Menu</button>');
+ assert.deepEqual(settingsAnchors(document,'/play').map(b=>b.id),['play-settings']);
+});
