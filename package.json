@@ -1,11 +1,14 @@
 {
   "name": "emulingo-lexirise",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "private": true,
   "author": "Firebird55",
   "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/Firebird55/Emulingo-Lexirise-userscript",
-  "repository": {"type":"git","url":"https://github.com/Firebird55/Emulingo-Lexirise-userscript.git"},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Firebird55/Emulingo-Lexirise-userscript.git"
+  },
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
