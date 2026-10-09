@@ -1,0 +1,27 @@
+// ==UserScript==
+// @name         Emulingo Lexirise
+// @namespace    emulingo-lexirise
+// @version      1.1.2
+// @description  Language readings, word lookups and synchronized Lexirise settings for Emulingo on mobile and desktop.
+// @author       Firebird55
+// @copyright    2026 Firebird55
+// @license      Firebird55-Attribution-1.0; https://github.com/Firebird55/Emulingo-Lexirise-userscript/blob/main/LICENSE
+// @homepageURL  https://github.com/Firebird55/Emulingo-Lexirise-userscript
+// @supportURL   https://github.com/Firebird55/Emulingo-Lexirise-userscript/issues
+// @updateURL    https://github.com/Firebird55/Emulingo-Lexirise-userscript/releases/latest/download/emulingo-lexirise.meta.js
+// @downloadURL    https://github.com/Firebird55/Emulingo-Lexirise-userscript/releases/latest/download/emulingo-lexirise.user.js
+// @match        https://emulingo.com/*
+// @match        https://www.emulingo.com/*
+// @run-at       document-idle
+// @sandbox      raw
+// @noframes
+// @grant        GM.getValue
+// @grant        GM.setValue
+// @grant        GM.deleteValue
+// @grant        GM.xmlHttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_deleteValue
+// @grant        GM_xmlhttpRequest
+// @connect      api.lexirise.app
+// ==/UserScript==

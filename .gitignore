@@ -1,0 +1,13 @@
+node_modules/
+desktop.ini
+release/
+.watch/
+output/
+*.tsbuildinfo
+/dist/
+.test-build/
+.playwright-cli/
+LexiriseAPIKey.txt
+*.log
+.DS_Store
+Thumbs.db

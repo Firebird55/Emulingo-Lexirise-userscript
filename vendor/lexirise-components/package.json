@@ -1,0 +1,42 @@
+{
+  "name": "@firebird55/lexirise-components",
+  "version": "1.0.4",
+  "type": "module",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Firebird55",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles.css",
+    "./capabilities.json": "./capabilities.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "capabilities.json",
+    "tools",
+    "lexirise-baseline.json",
+    "PROVENANCE.json",
+    "README.md",
+    "INSTALL.md",
+    "INSTALL.html",
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "RELEASE.md",
+    "LICENSE",
+    "NOTICE.md"
+  ],
+  "peerDependencies": {
+    "react": ">=19.2.0",
+    "react-dom": ">=19.2.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.7.0",
+    "lucide-react": "1.31.0"
+  }
+}

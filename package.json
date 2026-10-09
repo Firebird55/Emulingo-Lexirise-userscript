@@ -1,0 +1,39 @@
+{
+  "name": "emulingo-lexirise",
+  "version": "1.1.2",
+  "private": true,
+  "author": "Firebird55",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/Firebird55/Emulingo-Lexirise-userscript",
+  "repository": {"type":"git","url":"https://github.com/Firebird55/Emulingo-Lexirise-userscript.git"},
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs && node --test tests/*.test.mjs",
+    "test:browser": "npm run build && node scripts/browser-e2e.mjs",
+    "audit:public": "node scripts/public-audit.mjs",
+    "test:firefox": "npm run build && node scripts/firefox-e2e.mjs",
+    "typecheck": "tsc --noEmit",
+    "preview": "node scripts/preview.mjs",
+    "check": "npm run typecheck && npm test && npm run build",
+    "release": "node scripts/release.mjs",
+    "lexirise:watch": "node scripts/lexirise-watch.mjs",
+    "setup": "node scripts/install.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.7.0",
+    "lucide-react": "1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "@firebird55/lexirise-components": "file:vendor/lexirise-components"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "0.25.12",
+    "jsdom": "26.1.0",
+    "playwright": "1.64.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,61 @@
+name: Checks and release
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium firefox
+      - run: node scripts/browser-e2e.mjs
+      - run: npm run test:firefox
+      - run: node scripts/secret-check.mjs
+      - run: npm run audit:public
+      - name: Validate and package release artifacts
+        run: node scripts/package-release.mjs
+      - run: node scripts/validate-artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tested-release-assets
+          path: |
+            release/*.zip
+            release/*.js
+            release/*.txt
+            release/*.md
+            release/*.html
+            release/*.json
+            release/SHA256SUMS
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tested-release-assets
+          path: release
+      - name: Publish public install and update channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]] || exit 1
+          flags=(--latest)
+          if [[ "$RELEASE_TAG" == *-* ]]; then flags=(--prerelease --latest=false); fi
+          gh release create "$RELEASE_TAG" release/* --verify-tag --title "Emulingo Lexirise $RELEASE_TAG" "${flags[@]}" --notes "Install emulingo-lexirise.user.js using a userscript manager. The public metadata channel supports subsequent manager-controlled updates. See INSTALL.md for mobile/Safari limitations. Attribution and third-party notices are included."
