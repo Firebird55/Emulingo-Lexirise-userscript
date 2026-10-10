@@ -38,4 +38,4 @@ Install the versioned .user.js from an earlier public release and disable automa
 
 ## Upstream compatibility
 
-npm run lexirise:watch reads public API docs and website bundles. Exit 2 flags a review, not permission for real account writes. Keep changes in the canonical shared source and test both hosts. Keep toolkit, canonical shared repository and private history archives private. Releases are independent of Argo/cluster infrastructure.
+npm run lexirise:watch reads public API docs and website bundles. Exit 2 flags a review, not permission for real account writes. Keep changes in the canonical shared source and test both hosts. Keep private history archives outside all public repositories. Releases are independent of Argo/cluster infrastructure.
