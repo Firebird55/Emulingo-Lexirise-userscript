@@ -233,3 +233,7 @@
   .word-speak { width:40px; height:40px; }
   .word-example-actions button { width:40px; height:40px; }
 }
+
+.reading-options-dialog { width:min(560px,calc(100vw - 24px)); }
+.reading-options-dialog fieldset { border:1px solid #3b4c59; border-radius:8px; padding:12px; }
+@media(max-width:360px) { .reading-options-dialog .reader-option-row { grid-template-columns:minmax(0,1fr); } }

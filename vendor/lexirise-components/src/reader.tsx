@@ -17,20 +17,22 @@ export type ReadingOptions = {
   hideEnglishAt: TranslationLimit;
   palette: [string, string, string, string, string, ...string[]];
 };
-export const MIGAKU_TONE_PALETTE: ReadingOptions['palette'] = ['#ff526b', '#ffd34d', '#43cfa1', '#4fa8ff', '#9ca9b7'];
+export const DEFAULT_TONE_PALETTE: ReadingOptions['palette'] = ['#ff526b', '#ffd34d', '#43cfa1', '#4fa8ff', '#9ca9b7'];
+/** @deprecated Use DEFAULT_TONE_PALETTE. Saved colors are unchanged. */
+export const MIGAKU_TONE_PALETTE = DEFAULT_TONE_PALETTE;
 export const DEFAULT_READING_OPTIONS: ReadingOptions = {
   pinyin: 'unknown', zhuyin: 'off', toneMarks: 'off', meanings: 'unknown',
-  toneColors: 'all', hideEnglishAt: 'off', palette: [...MIGAKU_TONE_PALETTE],
+  toneColors: 'all', hideEnglishAt: 'off', palette: [...DEFAULT_TONE_PALETTE],
 };
 export function isReadingScope(value: unknown): value is ReadingScope {
   return value === 'unknown' || value === 'all' || value === 'off';
 }
 export function restoreReadingOptions(value: unknown): ReadingOptions {
-  if (!value || typeof value !== 'object') return { ...DEFAULT_READING_OPTIONS, palette: [...MIGAKU_TONE_PALETTE] };
+  if (!value || typeof value !== 'object') return { ...DEFAULT_READING_OPTIONS, palette: [...DEFAULT_TONE_PALETTE] };
   const saved = value as Record<string, unknown>;
   const palette = Array.isArray(saved.palette) && saved.palette.length >= 5 && saved.palette.length <= 6
     && saved.palette.every(color => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))
-    ? saved.palette as ReadingOptions['palette'] : [...MIGAKU_TONE_PALETTE] as ReadingOptions['palette'];
+    ? saved.palette as ReadingOptions['palette'] : [...DEFAULT_TONE_PALETTE] as ReadingOptions['palette'];
   return {
     pinyin: isReadingScope(saved.pinyin) ? saved.pinyin : 'unknown',
     zhuyin: isReadingScope(saved.zhuyin) ? saved.zhuyin : 'off',

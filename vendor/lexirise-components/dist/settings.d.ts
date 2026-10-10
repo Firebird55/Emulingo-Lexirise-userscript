@@ -8,7 +8,21 @@ export type LocalSettings = ReadingOptions & {
     translationLanguage?: string;
 };
 export declare function restoreLocalSettings(value: unknown): LocalSettings;
-export declare function SettingsPanel({ initial, onChange, onClose, adapter, connection, sourceLanguage, sourceOverride }: {
+export type ReadingOptionsControlsProps = {
+    value: LocalSettings;
+    onChange: (settings: LocalSettings) => void;
+    sourceLanguage?: StudyLanguage;
+    sourceOverride?: boolean;
+};
+/** Immediate local preferences; no transport, key storage, or account writes. */
+export declare function ReadingOptionsControls({ value: local, onChange: updateLocal, sourceLanguage, sourceOverride }: ReadingOptionsControlsProps): import("react/jsx-runtime").JSX.Element;
+export declare function ReadingOptionsDialog({ initial, onChange, onClose, sourceLanguage }: {
+    initial: LocalSettings;
+    onChange: (settings: LocalSettings) => void | Promise<void>;
+    onClose: () => void;
+    sourceLanguage?: StudyLanguage;
+}): import("react/jsx-runtime").JSX.Element;
+export declare function SettingsPanel({ initial, onChange, onClose, adapter, connection, sourceLanguage, sourceOverride, showReadingOptions, title }: {
     initial: LocalSettings;
     onChange: (settings: LocalSettings) => void | Promise<void>;
     onClose: () => void;
@@ -16,4 +30,6 @@ export declare function SettingsPanel({ initial, onChange, onClose, adapter, con
     connection?: ReactNode;
     sourceLanguage?: StudyLanguage;
     sourceOverride?: boolean;
+    showReadingOptions?: boolean;
+    title?: string;
 }): import("react/jsx-runtime").JSX.Element;

@@ -1,9 +1,9 @@
 
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { capabilities, studyLanguages, translationLanguages, type StudyLanguage } from './capabilities.js';
 import { globalFields, languageFields, settingsPatch, validateAccount, type AccountSettings, type JsonObject, type SettingsAdapter } from './account.js';
-import { DEFAULT_READING_OPTIONS, MIGAKU_TONE_PALETTE, restoreReadingOptions, type ReadingOptions, type ReadingScope } from './reader.js';
+import { DEFAULT_TONE_PALETTE, restoreReadingOptions, type ReadingOptions, type ReadingScope } from './reader.js';
 import { restoreTranslationLimit } from './translation-visibility.js';
 export type LocalSettings = ReadingOptions & {fontSize?:number; sourceLanguage?:StudyLanguage|'auto'; translationLanguage?:string};
 export function restoreLocalSettings(value:unknown):LocalSettings {
@@ -24,7 +24,45 @@ function Field({name,value,onChange,options}:{name:string,value:any,onChange:(v:
  values?<select aria-label={name} value={value??''} onChange={e=>onChange(e.target.value||null)}><option value="">Default</option>{[...new Set([...values,...(value?[String(value)]:[])])].map(option=><option key={option}>{option}</option>)}</select>:
  <input aria-label={name} type={typeof value==='number'?'number':'text'} value={value??''} onChange={e=>onChange(typeof value==='number'?Number(e.target.value):e.target.value)}/>}</label>;
 }
-export function SettingsPanel({initial,onChange,onClose,adapter,connection,sourceLanguage='zh',sourceOverride=false}:{initial:LocalSettings;onChange:(settings:LocalSettings)=>void|Promise<void>;onClose:()=>void;adapter:SettingsAdapter;connection?:ReactNode;sourceLanguage?:StudyLanguage;sourceOverride?:boolean}) {
+function useDialogFocus() {
+ const ref=useRef<HTMLElement>(null);
+ useEffect(()=>{
+  const dialog=ref.current;if(!dialog)return;
+  const root=dialog.getRootNode() as Document|ShadowRoot;
+  const previous=root.activeElement as HTMLElement|null;
+  const items=()=>Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href]')).filter(n=>n.getClientRects().length);
+  items()[0]?.focus();
+  const trap=(event:KeyboardEvent)=>{if(event.key!=='Tab')return;const nodes=items(),first=nodes[0],last=nodes[nodes.length-1],active=root.activeElement;
+   if(event.shiftKey&&active===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&active===last){event.preventDefault();first?.focus();}};
+  dialog.addEventListener('keydown',trap);
+  return()=>{dialog.removeEventListener('keydown',trap);if(previous?.isConnected)previous.focus();};
+ },[]);
+ return ref;
+}
+export type ReadingOptionsControlsProps = {value:LocalSettings;onChange:(settings:LocalSettings)=>void;sourceLanguage?:StudyLanguage;sourceOverride?:boolean};
+/** Immediate local preferences; no transport, key storage, or account writes. */
+export function ReadingOptionsControls({value:local,onChange:updateLocal,sourceLanguage='zh',sourceOverride=false}:ReadingOptionsControlsProps) {
+ const source=capabilities[sourceLanguage];
+ return ( <fieldset><legend>Reading options</legend>
+ {sourceOverride&&<><Field name="Content source language" value={local.sourceLanguage??'auto'} options={['auto',...studyLanguages]} onChange={v=>updateLocal({...local,sourceLanguage:v})}/><Field name="Lookup translation language" value={local.translationLanguage??'en'} options={translationLanguages} onChange={v=>updateLocal({...local,translationLanguage:v})}/></>}
+ <label className="reader-option-row"><span><strong>Hide English translation</strong><small>Hide translations at this unknown-word threshold; tap to reveal.</small></span><select aria-label="Hide English translation" value={local.hideEnglishAt} onChange={e=>updateLocal({...local,hideEnglishAt:restoreTranslationLimit(e.target.value==='off'?'off':Number(e.target.value))})}><option value="off">Always show</option>{[0,1,2,3].map(n=><option key={n} value={n}>{n} or fewer unknown words</option>)}</select></label>
+ {Object.entries(labels).filter(([key])=>key==='meanings'||key==='pinyin'&&source.readings.length||key==='zhuyin'&&sourceLanguage==='zh'||['toneMarks','toneColors'].includes(key)&&source.tones).map(([key,label])=><label className="reader-option-row" key={key}><span><strong>{label}</strong></span><select aria-label={label} value={local[key as keyof ReadingOptions] as string} onChange={e=>updateLocal({...local,[key]:e.target.value as ReadingScope})}><option value="unknown">Unknown words</option><option value="all">All words</option><option value="off">Off</option></select></label>)}
+ <Field name="Text size" value={local.fontSize??27} onChange={v=>{if(v>=18&&v<=48)updateLocal({...local,fontSize:v});}}/>
+ {!!source.tones&&<fieldset className="reader-tone-palette"><legend>Tone colors</legend><div className="reader-color-list">{Array.from({length:source.tones},(_,i)=><label key={i}><input type="color" aria-label={'Tone '+(i+1)+' color'} value={local.palette[i]??'#c084fc'} onChange={e=>{const palette=[...local.palette] as LocalSettings['palette'];palette[i]=e.target.value;updateLocal({...local,palette});}}/><span>{sourceLanguage==='zh'?['1 · level','2 · rising','3 · dipping','4 · falling','5 · neutral'][i]:'Tone '+(i+1)}</span></label>)}</div><button type="button" onClick={()=>updateLocal({...local,palette:[...DEFAULT_TONE_PALETTE]})}>Reset colors</button></fieldset>}
+ </fieldset>);
+}
+export function ReadingOptionsDialog({initial,onChange,onClose,sourceLanguage='zh'}:{initial:LocalSettings;onChange:(settings:LocalSettings)=>void|Promise<void>;onClose:()=>void;sourceLanguage?:StudyLanguage}) {
+ const focus=useDialogFocus();
+ const [local,setLocal]=useState(initial),[message,setMessage]=useState('');
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.stopPropagation();onClose();}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[onClose]);
+ return <div className="settings-backdrop" onClick={e=>{if(e.target===e.currentTarget)onClose();}}><section ref={focus} className="settings-dialog reading-options-dialog" role="dialog" aria-modal="true" aria-label="Lexirise reading options" onKeyDown={e=>e.stopPropagation()}>
+ <button className="settings-close" type="button" aria-label="Close Lexirise settings" onClick={onClose}>×</button><h2>Lexirise reading options</h2>
+ <p className="settings-description">Choose readings, translations and tone colors. Changes apply immediately on this device.</p>
+ <ReadingOptionsControls value={local} sourceLanguage={sourceLanguage} onChange={next=>{setLocal(next);Promise.resolve(onChange(next)).catch(()=>setMessage('Could not save reading preferences.'));}}/>
+ <p role="status">{message}</p></section></div>;
+}
+export function SettingsPanel({initial,onChange,onClose,adapter,connection,sourceLanguage='zh',sourceOverride=false,showReadingOptions=true,title='Lexirise reading options'}:{initial:LocalSettings;onChange:(settings:LocalSettings)=>void|Promise<void>;onClose:()=>void;adapter:SettingsAdapter;connection?:ReactNode;sourceLanguage?:StudyLanguage;sourceOverride?:boolean;showReadingOptions?:boolean;title?:string}) {
+ const focus=useDialogFocus();
  const [local,setLocal]=useState(initial),[original,setOriginal]=useState<AccountSettings|null>(null),[draft,setDraft]=useState<AccountSettings|null>(null),[editing,setEditing]=useState<StudyLanguage>(sourceLanguage),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  async function reload(){setBusy(true);setMessage('');try{const result=validateAccount(await adapter.load());setOriginal(result);setDraft(structuredClone(result));}catch(e){setMessage(e instanceof Error?e.message:'Could not load settings.');}finally{setBusy(false);}}
  useEffect(()=>{void reload();},[adapter]);
@@ -33,19 +71,13 @@ export function SettingsPanel({initial,onChange,onClose,adapter,connection,sourc
  function updateGlobal(key:string,value:any){setDraft(d=>d?{...d,global:{...d.global,[key]:value}}:d);}
  function updateLanguage(key:string,value:any){setDraft(d=>d?{...d,languageSettings:{...d.languageSettings,[editing]:{...d.languageSettings[editing],[key]:value}}}:d);}
  async function save(){if(!original||!draft)return;setBusy(true);setMessage('');try{const patch=settingsPatch(original,draft);if(!Object.keys(patch).length){setMessage('No account changes.');return;}const result=validateAccount(await adapter.patch(patch));setOriginal(result);setDraft(structuredClone(result));setMessage('Saved to Lexirise.');}catch(e){setMessage(e instanceof Error?e.message:'Could not save account settings. Your changes are still here.');}finally{setBusy(false);}}
- const cap=capabilities[editing],source=capabilities[sourceLanguage];
+ const cap=capabilities[editing];
  const languageView:JsonObject={readingAid:cap.readings[1]??null,readingAboveWords:cap.readings.length?true:null,script:cap.scripts[0]??null,
  inlineGlossMode:'off',coloringMode:'learning_state',toneColorPreset:cap.tones?'lexirise':null,customToneColors:cap.tones?null:undefined,colorKnownWordsToo:false,emphasizeFrequencyLevel:0,wordSpacing:'md',ttsOnWordClick:cap.tts,automaticGrammarHighlighting:cap.grammar?false:null,highlightProperNouns:true,customFont:'',fontSize:'md',segmentByCharacter:cap.characters?false:null,dictionariesEnabled:true,dictionaries:[],wordPopup:null,...draft?.languageSettings[editing]};
- return <div className="settings-backdrop" onClick={e=>{if(e.target===e.currentTarget)onClose();}}><section className="settings-dialog" role="dialog" aria-modal="true" aria-label="Lexirise reading options" onKeyDown={e=>e.stopPropagation()}>
+ return <div className="settings-backdrop" onClick={e=>{if(e.target===e.currentTarget)onClose();}}><section ref={focus} className="settings-dialog" role="dialog" aria-modal="true" aria-label={title} onKeyDown={e=>e.stopPropagation()}>
  <button className="settings-close" type="button" aria-label="Close Lexirise settings" onClick={onClose}>×</button>
- <h2>Lexirise reading options</h2><p className="settings-description">Local display changes apply immediately. Account changes require Save to Lexirise. Editing another study language does not change this transcript's language.</p>
- <fieldset><legend>Local display only</legend>
- {sourceOverride&&<><Field name="Content source language" value={local.sourceLanguage??'auto'} options={['auto',...studyLanguages]} onChange={v=>updateLocal({...local,sourceLanguage:v})}/><Field name="Lookup translation language" value={local.translationLanguage??'en'} options={translationLanguages} onChange={v=>updateLocal({...local,translationLanguage:v})}/></>}
- <label className="reader-option-row"><span><strong>Hide English translation</strong><small>Hide translations at this unknown-word threshold; tap to reveal.</small></span><select aria-label="Hide English translation" value={local.hideEnglishAt} onChange={e=>updateLocal({...local,hideEnglishAt:restoreTranslationLimit(e.target.value==='off'?'off':Number(e.target.value))})}><option value="off">Always show</option>{[0,1,2,3].map(n=><option key={n} value={n}>{n} or fewer unknown words</option>)}</select></label>
- {Object.entries(labels).filter(([key])=>key==='meanings'||key==='pinyin'&&source.readings.length||key==='zhuyin'&&sourceLanguage==='zh'||['toneMarks','toneColors'].includes(key)&&source.tones).map(([key,label])=><label className="reader-option-row" key={key}><span><strong>{label}</strong></span><select aria-label={label} value={local[key as keyof ReadingOptions] as string} onChange={e=>updateLocal({...local,[key]:e.target.value as ReadingScope})}><option value="unknown">Unknown words</option><option value="all">All words</option><option value="off">Off</option></select></label>)}
- <Field name="Local text size" value={local.fontSize??27} onChange={v=>{if(v>=18&&v<=48)updateLocal({...local,fontSize:v});}}/>
- {!!source.tones&&<fieldset className="reader-tone-palette"><legend>Local tone palette</legend><div className="reader-color-list">{Array.from({length:source.tones},(_,i)=><label key={i}><input type="color" aria-label={'Tone '+(i+1)+' color'} value={local.palette[i]??'#c084fc'} onChange={e=>{const palette=[...local.palette] as LocalSettings['palette'];palette[i]=e.target.value;updateLocal({...local,palette});}}/><span>Tone {i+1}</span></label>)}</div><button type="button" onClick={()=>updateLocal({...local,palette:[...MIGAKU_TONE_PALETTE]})}>Reset colors</button></fieldset>}
- </fieldset>{connection}
+ <h2>{title}</h2><p className="settings-description">Local display changes apply immediately. Account changes require Save to Lexirise. Editing another study language does not change this transcript's language.</p>
+ {showReadingOptions&&<ReadingOptionsControls value={local} onChange={updateLocal} sourceLanguage={sourceLanguage} sourceOverride={sourceOverride}/>}{connection}
  <fieldset className="settings-account"><legend>Lexirise account settings</legend>
  <div className="settings-actions"><button type="button" disabled={busy} onClick={()=>void reload()}>Reload from Lexirise</button><button type="button" disabled={busy||!draft} onClick={()=>void save()}>Save to Lexirise</button><button type="button" disabled={busy||!original} onClick={()=>{setDraft(structuredClone(original));setMessage('Account changes discarded.');}}>Discard account changes</button></div>
  <p role="status">{busy?'Contacting Lexirise…':message}</p>

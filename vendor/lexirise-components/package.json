@@ -1,6 +1,6 @@
 {
   "name": "@firebird55/lexirise-components",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
@@ -29,7 +29,10 @@
     "CONTRIBUTING.md",
     "RELEASE.md",
     "LICENSE",
-    "NOTICE.md"
+    "NOTICE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md"
   ],
   "peerDependencies": {
     "react": ">=19.2.0",

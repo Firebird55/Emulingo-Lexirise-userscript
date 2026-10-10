@@ -6,21 +6,23 @@ import { Popover } from '@base-ui/react/popover';
 import { Bookmark, Play, Volume2, X } from 'lucide-react';
 import { countUnknownWords, restoreTranslationLimit } from './translation-visibility.js';
 import { appliesToWord, unknownWordGrammar, grammarUrl } from './grammar-rules.js';
-export const MIGAKU_TONE_PALETTE = ['#ff526b', '#ffd34d', '#43cfa1', '#4fa8ff', '#9ca9b7'];
+export const DEFAULT_TONE_PALETTE = ['#ff526b', '#ffd34d', '#43cfa1', '#4fa8ff', '#9ca9b7'];
+/** @deprecated Use DEFAULT_TONE_PALETTE. Saved colors are unchanged. */
+export const MIGAKU_TONE_PALETTE = DEFAULT_TONE_PALETTE;
 export const DEFAULT_READING_OPTIONS = {
     pinyin: 'unknown', zhuyin: 'off', toneMarks: 'off', meanings: 'unknown',
-    toneColors: 'all', hideEnglishAt: 'off', palette: [...MIGAKU_TONE_PALETTE],
+    toneColors: 'all', hideEnglishAt: 'off', palette: [...DEFAULT_TONE_PALETTE],
 };
 export function isReadingScope(value) {
     return value === 'unknown' || value === 'all' || value === 'off';
 }
 export function restoreReadingOptions(value) {
     if (!value || typeof value !== 'object')
-        return { ...DEFAULT_READING_OPTIONS, palette: [...MIGAKU_TONE_PALETTE] };
+        return { ...DEFAULT_READING_OPTIONS, palette: [...DEFAULT_TONE_PALETTE] };
     const saved = value;
     const palette = Array.isArray(saved.palette) && saved.palette.length >= 5 && saved.palette.length <= 6
         && saved.palette.every(color => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))
-        ? saved.palette : [...MIGAKU_TONE_PALETTE];
+        ? saved.palette : [...DEFAULT_TONE_PALETTE];
     return {
         pinyin: isReadingScope(saved.pinyin) ? saved.pinyin : 'unknown',
         zhuyin: isReadingScope(saved.zhuyin) ? saved.zhuyin : 'off',

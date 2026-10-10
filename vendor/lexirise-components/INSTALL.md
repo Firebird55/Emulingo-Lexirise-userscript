@@ -1,12 +1,12 @@
 # Install Lexirise shared components
 
-Private React/TypeScript library providing the settings panel, reader, lookup window, types and capabilities used by both applications.
+React/TypeScript library providing the settings panel, reader, lookup window, types and capabilities used by both applications.
 
 ## Installation
 
 1. This is a developer library, not a third standalone web app. End users get it through the Emulingo and toolkit installers. No game files or API credentials are needed here.
 
-2. For contributing: download the source ZIP or clone the private repository with your authenticated GitHub account. Install Node.js 24. From the source folder run npm run setup, or double-click Install.cmd on Windows. This installs locked dependencies and checks/builds the library.
+2. For contributing: download the source ZIP or clone the public repository. Install Node.js 24. From the source folder run npm run setup, or double-click Install.cmd on Windows. This installs locked dependencies and checks/builds the library.
 
 3. For another React application: download the verified release .tgz, then use npm install /path/to/firebird55-lexirise-components-VERSION.tgz in that application. React and React DOM are peer dependencies. Import @firebird55/lexirise-components and its styles.css; provide your own transport, storage and popup portal.
 
@@ -22,4 +22,4 @@ Read [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASE.md]
 
 ## Checksums and rollback
 
-Download SHA256SUMS beside the release assets; compare SHA-256 hashes before running an installer. Use gh release download <tag> --repo Firebird55/Lexirise-shared-components --dir <empty-folder> for authenticated downloads. Install an earlier immutable release to roll back, keeping local data, keys and userscript-manager storage. See [release runbook](RELEASE.md).
+Download SHA256SUMS beside the release assets; compare SHA-256 hashes before running an installer. Use gh release download <tag> --repo Firebird55/Lexirise-shared-components --dir <empty-folder> for public downloads. Install an earlier immutable release to roll back, keeping local data, keys and userscript-manager storage. See [release runbook](RELEASE.md).

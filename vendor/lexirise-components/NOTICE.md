@@ -1,5 +1,5 @@
-# Attribution
+# Notices
 
-Original shared component code is copyright 2026 Firebird55 and distributed under the included Firebird55 Attribution License. Keep that license and give the required public credit when reusing substantial portions.
+Original project software is Copyright (c) 2026 Firebird55 and contributors, under the included Firebird55 Attribution License. Public products incorporating substantial portions must visibly credit [Firebird55](https://github.com/Firebird55/Emulingo-Lexirise-userscript), as described in LICENSE.
 
-React, React DOM, Base UI, Floating UI, Lucide and other dependencies retain their upstream licenses. Host application build pipelines must retain their bundled third-party notices. Emulingo and Lexirise are independent services; this project is not endorsed by either.
+This independent community project is not endorsed by Lexirise, Emulingo, Migaku or game publishers. Names and trademarks belong to their respective owners. See THIRD_PARTY_NOTICES.md for external components and redistribution boundaries.

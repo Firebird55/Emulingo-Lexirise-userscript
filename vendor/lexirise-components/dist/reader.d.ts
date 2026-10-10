@@ -11,7 +11,9 @@ export type ReadingOptions = {
     hideEnglishAt: TranslationLimit;
     palette: [string, string, string, string, string, ...string[]];
 };
-export declare const MIGAKU_TONE_PALETTE: ReadingOptions['palette'];
+export declare const DEFAULT_TONE_PALETTE: ReadingOptions['palette'];
+/** @deprecated Use DEFAULT_TONE_PALETTE. Saved colors are unchanged. */
+export declare const MIGAKU_TONE_PALETTE: [string, string, string, string, string, ...string[]];
 export declare const DEFAULT_READING_OPTIONS: ReadingOptions;
 export declare function isReadingScope(value: unknown): value is ReadingScope;
 export declare function restoreReadingOptions(value: unknown): ReadingOptions;
