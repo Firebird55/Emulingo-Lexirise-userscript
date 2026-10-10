@@ -41,7 +41,7 @@ try{
   await page.locator('button[aria-label="Open Lexirise settings"]:visible').click();
   const dialog=page.getByRole('dialog',{name:'Lexirise reading options'});await page.getByLabel('Edit account language').waitFor();
   bounds=await dialog.boundingBox();assert(bounds&&bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,name+' settings fits '+width+'x'+height);
-  await page.getByLabel('Local text size',{exact:true}).fill('31');assert.equal(writes.length,0);
+  await page.getByLabel('Text size',{exact:true}).fill('31');assert.equal(writes.length,0);
   if(zoom===1&&pw===1920){
    for(const[lang,cap]of Object.entries(manifest.languages)){await page.getByLabel('Edit account language').selectOption(lang);assert.equal(await page.getByLabel('readingAid',{exact:true}).count(),cap.readings.length?1:0,lang+' readings');assert.equal(await page.getByLabel('script',{exact:true}).count(),cap.scripts.length?1:0,lang+' script');}
    await page.getByLabel('Edit account language').selectOption('nl');
