@@ -1,6 +1,8 @@
 import { type StudyLanguage } from './capabilities.js';
+import { type ComponentProps } from 'react';
 import { type ReadingSummary, type TranslationLimit } from './translation-visibility.js';
 import { type GrammarRule } from './grammar-rules.js';
+import type { AccountSettings } from './account.js';
 export type ReadingScope = 'unknown' | 'all' | 'off';
 export type ReadingOptions = {
     pinyin: ReadingScope;
@@ -27,6 +29,7 @@ export type Token = {
     proficiency: number;
     meaning: string;
     entryId?: number | null;
+    savedExpressionId?: number | null;
 };
 export type Reading = {
     text: string;
@@ -72,12 +75,19 @@ export type Lookup = {
     characterHint?: string;
     strokeCount?: number;
     character?: string;
+    topWords?: {
+        word: string;
+        trad?: string;
+        gloss: string;
+        share?: number;
+    }[];
 };
 export declare function enabled(scope: ReadingScope, unknown: boolean): boolean;
 export declare function toneStyle(tones: number[], text: string, palette: ReadingOptions['palette']): React.CSSProperties | undefined;
 export type ReaderAdapter = {
     sourceLanguage: StudyLanguage;
     translationLanguage: string;
+    loadSettings?: () => Promise<AccountSettings>;
     request: (text: string, action: string, params?: {
         start?: number;
         index?: number;
@@ -91,8 +101,9 @@ export declare function createReader(adapter: ReaderAdapter): {
         options: ReadingOptions;
         current?: boolean;
         onSummary?: (summary: ReadingSummary) => void;
+        sentenceTranslation?: string;
     }>;
-    LookupWindow: ({ id, text, token, lookup, lookupError, options, anchor, keyboard, grammar, analysisPending, onGrammarChange, onGrammarRetry, onClose, onProficiency, onRetry }: {
+    LookupWindow: (props: Omit<ComponentProps<({ id, text, token, lookup, lookupError, options, anchor, keyboard, grammar, analysisPending, onGrammarChange, onGrammarRetry, onClose, onProficiency, onRetry, preferences, sentenceTranslation }: {
         id: number;
         text: string;
         token: Token;
@@ -112,7 +123,14 @@ export declare function createReader(adapter: ReaderAdapter): {
             localOverride: boolean;
         }) => void;
         onGrammarRetry: () => void;
-    }) => import("react/jsx-runtime").JSX.Element;
+        preferences: ReturnType<() => {
+            settingsError: boolean;
+            layout: import("./word-popup.js").WordPopupSettings;
+            disabled: boolean;
+            hover: boolean;
+        }>;
+        sentenceTranslation?: string;
+    }) => import("react/jsx-runtime").JSX.Element>, "preferences">) => import("react/jsx-runtime").JSX.Element | null;
     resetReadingCaches: () => void;
 };
 export declare function Reader({ adapter, ...props }: {

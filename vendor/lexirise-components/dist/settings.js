@@ -5,6 +5,7 @@ import { capabilities, studyLanguages, translationLanguages } from './capabiliti
 import { accountToneColorPresets, globalFields, languageFields, settingsPatch, validateAccount } from './account.js';
 import { DEFAULT_TONE_PALETTE, restoreReadingOptions } from './reader.js';
 import { restoreTranslationLimit } from './translation-visibility.js';
+import { normalizeWordPopupSettings } from './word-popup.js';
 export function restoreLocalSettings(value) {
     const saved = value;
     return { ...restoreReadingOptions(value), fontSize: typeof saved?.fontSize === 'number' && saved.fontSize >= 18 && saved.fontSize <= 48 ? saved.fontSize : 27,
@@ -13,10 +14,18 @@ export function restoreLocalSettings(value) {
 }
 const labels = { pinyin: 'Pronunciation readings', zhuyin: 'Zhuyin', toneMarks: 'Separate tone marks', meanings: 'Inline glosses', toneColors: 'Tone colors' };
 const choices = { interfaceLanguage: ['translation', 'device', ...translationLanguages], translationLanguage: translationLanguages, wordPopupOpenMode: ['click', 'hover'], inlineGlossMode: ['off', 'unknown', 'all'], coloringMode: ['learning_state', 'tone'], toneColorPreset: accountToneColorPresets, wordSpacing: ['none', 'sm', 'md', 'lg'], fontSize: ['sm', 'md', 'lg'], script: ['simplified', 'traditional'] };
+export function WordPopupControls({ value, onChange }) {
+    const popup = normalizeWordPopupSettings(value);
+    const label = (id) => id[0].toUpperCase() + id.slice(1);
+    function move(group, index, direction) { const items = [...popup[group]], target = index + direction; [items[index], items[target]] = [items[target], items[index]]; onChange({ ...popup, [group]: items }); }
+    return _jsxs("fieldset", { className: "word-popup-settings", children: [_jsx("legend", { children: "Word popup" }), _jsxs("label", { className: "reader-option-row", children: [_jsx("span", { children: "Open on" }), _jsxs("select", { "aria-label": "Word popup open on", value: popup.openOn, onChange: e => onChange({ ...popup, openOn: e.target.value }), children: [_jsx("option", { value: "first", children: "First enabled tab" }), _jsx("option", { value: "last", children: "Last used tab" })] })] }), ['tabs', 'definition'].map(group => _jsxs("div", { children: [_jsx("h4", { children: group === 'tabs' ? 'Tabs' : 'Definition sections' }), popup[group].map((item, index) => _jsxs("div", { className: "word-popup-setting-row", children: [_jsxs("label", { children: [_jsx("input", { type: "checkbox", "aria-label": `${label(item.id)} ${group === 'tabs' ? 'tab' : 'section'}`, checked: item.enabled, disabled: group === 'tabs' && item.id === 'definition', onChange: e => onChange({ ...popup, [group]: popup[group].map(v => v.id === item.id ? { ...v, enabled: e.target.checked } : v) }) }), label(item.id)] }), _jsx("button", { type: "button", "aria-label": `Move ${item.id} ${group} up`, disabled: index === 0, onClick: () => move(group, index, -1), children: "\u2191" }), _jsx("button", { type: "button", "aria-label": `Move ${item.id} ${group} down`, disabled: index === popup[group].length - 1, onClick: () => move(group, index, 1), children: "\u2193" })] }, item.id))] }, group)), _jsx("button", { type: "button", onClick: () => onChange(null), children: "Reset popup to Lexirise defaults" }), _jsx("small", { children: "Save to Lexirise applies these changes. Available tabs depend on the word. Definition always stays enabled." })] });
+}
 function Field({ name, value, onChange, options }) {
     const [raw, setRaw] = useState(JSON.stringify(value ?? null, null, 2));
     const [invalid, setInvalid] = useState(false);
     useEffect(() => { setRaw(JSON.stringify(value ?? null, null, 2)); setInvalid(false); }, [value]);
+    if (name === 'wordPopup')
+        return _jsx(WordPopupControls, { value: value, onChange: onChange });
     if ((value && typeof value === 'object') || ['wordPopup', 'customToneColors', 'customProficiencyColors', 'dictionaries'].includes(name))
         return _jsxs("label", { className: "reader-option-row", children: [_jsxs("span", { children: [name, _jsx("small", { children: "Structured setting, validated by Lexirise when saved." })] }), _jsx("textarea", { "aria-label": name, value: raw, onChange: e => { setRaw(e.target.value); try {
                         const next = JSON.parse(e.target.value);

@@ -1,11 +1,13 @@
 'use client';
 import { capabilities, type StudyLanguage } from './capabilities.js';
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { Bookmark, Play, Volume2, X } from 'lucide-react';
 import { countUnknownWords, restoreTranslationLimit, type ReadingSummary, type TranslationLimit } from './translation-visibility.js';
 import { appliesToWord, unknownWordGrammar, grammarUrl, type GrammarRule } from './grammar-rules.js';
+import { popupPreferences, orderWordPopupTabs, orderWordPopupDefinitionSections, resolveInitialWordPopupTab, type WordTab, type DefinitionSection } from './word-popup.js';
+import type { AccountSettings } from './account.js';
 
 export type ReadingScope = 'unknown' | 'all' | 'off';
 export type ReadingOptions = {
@@ -43,7 +45,7 @@ export function restoreReadingOptions(value: unknown): ReadingOptions {
     palette,
   };
 }
-export type Token = { start: number; end: number; word: string; pinyin: string; zhuyin: string; tones: number[]; proficiency: number; meaning: string; entryId?: number | null };
+export type Token = { start: number; end: number; word: string; pinyin: string; zhuyin: string; tones: number[]; proficiency: number; meaning: string; entryId?: number | null; savedExpressionId?: number | null };
 export type Reading = { text: string; tokens: Token[]; pendingMeanings?: boolean; analysisPending?: boolean; grammar?: GrammarRule[] };
 type Component = { character: string; type: string[]; hint: string; pinyin?: string[]; gloss?: string; characterHint?: string };
 export type Lookup = {
@@ -55,6 +57,7 @@ export type Lookup = {
   alternateReadings: string[];
   components: Component[];
   characterHint?: string; strokeCount?: number; character?: string;
+  topWords?: { word: string; trad?: string; gloss: string; share?: number }[];
 };
 type ContextMeaning = { meaning: string; conciseMeaning: string; reading: string };
 type CharacterBreakdown = { partial?: boolean; characters: { character: string; hint: string; strokeCount?: number;
@@ -63,7 +66,6 @@ type CharacterBreakdown = { partial?: boolean; characters: { character: string; 
 type ExampleResult = { examples: { text: string; translation: string; tokens: Token[] }[] };
 type SimilarResult = { generated: boolean; suggestions: { word: string; pinyin: string;
   tones: number[]; meaning: string; usage: string }[] };
-type WordTab = 'definition' | 'grammar' | 'context' | 'examples' | 'similar' | 'components';
 
 export function enabled(scope: ReadingScope, unknown: boolean) {
   return scope === 'all' || (scope === 'unknown' && unknown);
@@ -82,6 +84,7 @@ export function toneStyle(tones: number[], text: string, palette: ReadingOptions
 
 
 export type ReaderAdapter = { sourceLanguage: StudyLanguage; translationLanguage:string;
+ loadSettings?:()=>Promise<AccountSettings>;
  request:(text:string,action:string,params?:{start?:number,index?:number},init?:RequestInit)=>Promise<Response>;
  portalContainer?:()=>HTMLElement|undefined;
 };
@@ -90,6 +93,31 @@ export function createReader(adapter:ReaderAdapter) {
  const getPortalContainer = adapter.portalContainer ?? (()=>undefined);
  const language = adapter.sourceLanguage;
  const capability = capabilities[language];
+let settingsPromise: Promise<AccountSettings | null> | null = null;
+let settingsEvent: Event | null = null;
+let lastTab: WordTab | null = null;
+const lastTabKey = `lexirise:word-popup-last-tab:${language}`;
+try { lastTab = localStorage.getItem(lastTabKey) as WordTab | null; } catch {}
+function usePopupPreferences() {
+  const [account, setAccount] = useState<AccountSettings | null>(null);
+  const [settingsError, setSettingsError] = useState(false);
+  useEffect(() => {
+    let active = true;
+    let revision = 0;
+    const load = () => {
+      const currentRevision = ++revision;
+      settingsPromise ??= adapter.loadSettings?.() ?? Promise.resolve(null);
+      void settingsPromise.then(value => { if (active && currentRevision === revision) { setAccount(value); setSettingsError(false); } })
+        .catch(() => { if (active && currentRevision === revision) { settingsPromise = null; setAccount(null); setSettingsError(true); } });
+    };
+    const changed = (event: Event) => { if (event !== settingsEvent) { settingsEvent = event; settingsPromise = null; } load(); };
+    load();
+    window.addEventListener('lexirise-account-settings', changed);
+    window.addEventListener('lexirise-credentials-changed', changed);
+    return () => { active = false; window.removeEventListener('lexirise-account-settings', changed); window.removeEventListener('lexirise-credentials-changed', changed); };
+  }, []);
+  return { ...popupPreferences(account, language), settingsError };
+}
  function notify(name:string,detail?:unknown) { try { window.dispatchEvent(detail===undefined?new Event(name):new CustomEvent(name,{detail})); } catch {} }
 const cache = new Map<number, { reading: Reading; at: number }>();
 const lookupCache = new Map<string, Lookup>();
@@ -181,15 +209,24 @@ function DefinitionComponents({ character, hint, strokeCount, components, option
   </section>;
 }
 
-function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyboard, grammar, analysisPending, onGrammarChange, onGrammarRetry, onClose, onProficiency, onRetry }: {
+function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyboard, grammar, analysisPending, onGrammarChange, onGrammarRetry, onClose, onProficiency, onRetry, preferences, sentenceTranslation }: {
   id: number; text: string; token: Token; lookup?: Lookup; lookupError: boolean;
   anchor: HTMLElement; keyboard: boolean;
   options: ReadingOptions; onClose: () => void; onProficiency: (level: number) => void; onRetry: () => void;
   grammar: GrammarRule[]; analysisPending: boolean;
   onGrammarChange: (rule: { slug: string; proficiency: number; localOverride: boolean }) => void;
   onGrammarRetry: () => void;
+  preferences: ReturnType<typeof usePopupPreferences>; sentenceTranslation?: string;
 }) {
-  const [tab, setTab] = useState<WordTab>('definition');
+  const available: WordTab[] = ['definition', 'context', 'translation', ...(capability.characters ? ['components' as const] : []), 'examples', 'similar', ...(lookup?.topWords?.length ? ['words' as const] : []), ...(token.savedExpressionId ? ['notes' as const] : []), ...(capability.grammar ? ['grammar' as const] : [])];
+  const tabs = orderWordPopupTabs(preferences.layout, available);
+  const [chosenTab, setChosenTab] = useState<WordTab | null>(null);
+  const tab = chosenTab && tabs.includes(chosenTab) ? chosenTab : resolveInitialWordPopupTab(tabs, preferences.layout, lastTab) ?? 'definition';
+  function setTab(value: WordTab) { setChosenTab(value); lastTab = value; try { localStorage.setItem(lastTabKey, value); } catch {} }
+  const sections = orderWordPopupDefinitionSections(preferences.layout, ['senses', ...(capability.characters ? ['breakdown' as const] : []), 'dictionaries', 'frequency']);
+  const sectionStyle = (id: DefinitionSection) => ({ order: sections.indexOf(id) });
+  const [notes, setNotes] = useState<{ notes: string } | null>(null);
+  const [notesError, setNotesError] = useState(false);
   const [context, setContext] = useState<ContextMeaning | null>(null);
   const [contextError, setContextError] = useState(false);
   const [contextQuestion, setContextQuestion] = useState('');
@@ -241,7 +278,7 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
     return () => controller.abort();
   }, [tab, context, contextError, id, token.start]);
   useEffect(() => {
-    if (!capability.characters || (tab !== 'components' && tab !== 'definition') || (token.word.length === 1 && !lookup) || characters || charactersError) return;
+    if (!capability.characters || (tab !== 'components' && !(tab === 'definition' && sections.includes('breakdown'))) || (token.word.length === 1 && !lookup) || characters || charactersError) return;
     const controller = new AbortController();
     requestReading(text, 'characters', {start: token.start},
       { cache: 'no-store', signal: controller.signal })
@@ -249,7 +286,15 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
       .then(setCharacters)
       .catch(() => { if (!controller.signal.aborted) setCharactersError(true); });
     return () => controller.abort();
-  }, [tab, characters, charactersError, id, token.start, token.word, lookup]);
+  }, [tab, sections.join(','), characters, charactersError, id, token.start, token.word, lookup]);
+  useEffect(() => {
+    if (tab !== 'notes' || notes || notesError) return;
+    const controller = new AbortController();
+    requestReading(text, 'notes', { start: token.start }, { signal: controller.signal, cache: 'no-store' })
+      .then(response => { if (!response.ok) throw new Error('Notes unavailable'); return response.json(); })
+      .then(setNotes).catch(() => { if (!controller.signal.aborted) setNotesError(true); });
+    return () => controller.abort();
+  }, [tab, notes, notesError, token.start, text]);
   useEffect(() => {
     if (tab !== 'examples' || examples || examplesError) return;
     const controller = new AbortController();
@@ -357,12 +402,15 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
       </div>
       {saveError && <p className="word-sheet-error" role="alert">{saveError}</p>}
       <div className="word-tabs" role="tablist" aria-label="Word details">
-        {(['definition', 'grammar', 'context', 'examples', 'similar', 'components'] as const).filter(value => (value !== 'components' || capability.characters) && (value !== 'grammar' || capability.grammar)).map(value =>
+        {tabs.map(value =>
           <button key={value} type="button" role="tab" aria-selected={tab === value}
+            id={`word-tab-${id}-${token.start}-${value}`} aria-controls={`word-panel-${id}-${token.start}`} tabIndex={tab === value ? 0 : -1}
+            onKeyDown={event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.indexOf(value) + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; setTab(tabs[index]); (event.currentTarget.parentElement?.children[index] as HTMLElement)?.focus(); }}
             className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}
       </div>
-      <div className="word-sheet-body" role="tabpanel">
-        {tab === 'definition' && (unknownGrammar.length > 0 || analysisPending) &&
+      <div className="word-sheet-body" role="tabpanel" id={`word-panel-${id}-${token.start}`} aria-labelledby={`word-tab-${id}-${token.start}-${tab}`}>
+        {preferences.settingsError && <p role="status">Popup preferences unavailable. Using the default layout; reload Lexirise settings to retry.</p>}
+        {tab === 'definition' && tabs.includes('grammar') && (unknownGrammar.length > 0 || analysisPending) &&
           <section className="word-grammar-summary" aria-label="Unknown grammar for this word">
             <small>Unknown grammar</small>
             {unknownGrammar.slice(0, 3).map(rule => <button type="button" key={rule.slug}
@@ -402,12 +450,12 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
         {lookupError && (tab === 'definition' || (tab === 'components' && token.word.length === 1)) &&
           <p>Dictionary details are unavailable. {token.meaning}
           <button type="button" className="word-retry" onClick={onRetry}>Retry dictionary lookup</button></p>}
-        {tab === 'definition' && lookup && <>
-          <div className="word-definition-senses">{lookup.translations.length ? lookup.translations.map((sense, index) =>
+        {tab === 'definition' && lookup && <div className="word-definition-sections">
+          {sections.includes('senses') && <div className="word-definition-senses" style={sectionStyle('senses')}>{lookup.translations.length ? lookup.translations.map((sense, index) =>
             <div className="word-definition-lead" key={index}><span>{sense.meaning}</span>
               {sense.partOfSpeech.map((part, partIndex) => <span className="word-pos" key={partIndex}>{part}</span>)}
-            </div>) : <p>{token.meaning || 'No definition yet'}</p>}</div>
-          {lookup.hskLevel != null && <span className="word-hsk">HSK {lookup.hskLevel}</span>}
+            </div>) : <p>{token.meaning || 'No definition yet'}</p>}</div>}
+          {sections.includes('breakdown') && <div style={sectionStyle('breakdown')}>
           {token.word.length > 1 && <section className="word-character-summary">
             <h3>Characters</h3>
             {characters ? <div className="word-character-summary-list">{characters.characters.map((character, index) =>
@@ -416,11 +464,6 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
                 <p>{character.gloss || (character.unavailable ? 'Details unavailable' : '')}</p>
               </div>)}</div> : <p>{charactersError ? <button type="button" className="word-retry" onClick={() => setCharactersError(false)}>Retry character details</button> : 'Loading character details…'}</p>}
           </section>}
-          {lookup.dictionaries.map((dictionary, index) => <section className="word-dictionary" key={index}>
-            <h3>{dictionary.name}</h3>
-            <p><strong>{dictionary.headword}</strong> <span>{dictionary.reading}</span></p>
-            <ul>{dictionary.definitions.map((meaning, item) => <li key={item}>{meaning}</li>)}</ul>
-          </section>)}
           {token.word.length === 1 ? <DefinitionComponents character={lookup.character || token.word} options={options}
             hint={lookup.characterHint} strokeCount={lookup.strokeCount}
             components={characters?.characters[0]?.components || lookup.components} /> :
@@ -430,13 +473,25 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
             onClick={() => setCharactersError(false)}>Retry component details</button>}
           {characters?.partial && <button type="button" className="word-retry"
             onClick={() => setCharacters(null)}>Retry missing character explanations</button>}
+          </div>}
+          {sections.includes('dictionaries') && <div style={sectionStyle('dictionaries')}>{lookup.dictionaries.map((dictionary, index) => <section className="word-dictionary" key={index}>
+            <h3>{dictionary.name}</h3>
+            <p><strong>{dictionary.headword}</strong> <span>{dictionary.reading}</span></p>
+            <ul>{dictionary.definitions.map((meaning, item) => <li key={item}>{meaning}</li>)}</ul>
+          </section>)}</div>}
+          {sections.includes('frequency') && <div style={sectionStyle('frequency')}>
+          {lookup.hskLevel != null && <span className="word-hsk">HSK {lookup.hskLevel}</span>}
           {lookup.rank != null && <div className="word-frequency"><span>Frequency</span>
             {lookup.frequencyScore != null && <span className="word-frequency-bars" aria-label={`Frequency score ${Math.round(lookup.frequencyScore * 100)} percent`}>
               {Array.from({ length: 4 }, (_, index) => <i key={index} className={lookup.frequencyScore! >= (index + 1) / 4 ? 'on' : ''} />)}
             </span>}
             <span>{lookup.rank <= 100 ? 'Very common' : lookup.rank <= 5000 ? 'Common' : 'Less common'}</span>
             <span>#{lookup.rank.toLocaleString()}</span></div>}
-        </>}
+          </div>}
+        </div>}
+        {tab === 'translation' && <div className="word-context"><p lang={language} dir={capability.direction}>{text}</p><p>{sentenceTranslation || 'No sentence translation is available for this line.'}</p></div>}
+        {tab === 'words' && <div className="word-similar"><h3>Words containing {token.word}</h3>{lookup?.topWords?.map((word, index) => <article key={index}><strong lang={language}>{word.word}</strong>{word.trad && word.trad !== word.word && <small>{word.trad}</small>}<p>{word.gloss}</p>{word.share != null && <small>{Math.round(word.share * 100)}% of occurrences</small>}</article>)}</div>}
+        {tab === 'notes' && <div className="word-context"><h3>Notes</h3>{notes ? <p className="word-notes">{notes.notes || 'No notes saved for this word.'}</p> : <p>{notesError ? <>Notes unavailable. <button type="button" onClick={() => setNotesError(false)}>Retry notes</button></> : 'Loading notes…'}</p>}<a href={`https://lexirise.app/vocabulary?language=${language}`} target="_blank" rel="noopener noreferrer">Edit notes on Lexirise ↗</a></div>}
         {tab === 'context' && <div className="word-context">
           <p lang={language} dir={capability.direction}>{text}</p>
           {context ? <><strong>{context.conciseMeaning || token.meaning}</strong><p>{context.meaning}</p>
@@ -506,10 +561,15 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
   </Popover.Root>;
 }
 
-const ReadingText = memo(function ReadingText({ id, text, options, current = false, onSummary }: {
+const ReadingText = memo(function ReadingText({ id, text, options, current = false, onSummary, sentenceTranslation }: {
   id: number; text: string; options: ReadingOptions; current?: boolean;
   onSummary?: (summary: ReadingSummary) => void;
+  sentenceTranslation?: string;
 }) {
+  const preferences = usePopupPreferences();
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelHover = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); hoverTimer.current = null; };
+  useEffect(() => () => cancelHover(), []);
   const [reading, setReading] = useState<Reading | null>(cachedReading(id, text));
   const [open, setOpen] = useState<number | null>(null);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -518,6 +578,7 @@ const ReadingText = memo(function ReadingText({ id, text, options, current = fal
   const [lookupAttempt, setLookupAttempt] = useState(0);
   const [error, setError] = useState(false);
   const refreshReading = useRef<(() => Promise<void>) | null>(null);
+  useEffect(() => { if (preferences.disabled) { cancelHover(); setOpen(null); } }, [preferences.disabled]);
   useEffect(() => {
     const dismiss = (event: Event) => {
       const path = event.composedPath();
@@ -614,9 +675,11 @@ const ReadingText = memo(function ReadingText({ id, text, options, current = fal
       {enabled(options.pinyin, unknown) && !!token.pinyin && <span className="reading-pinyin" aria-hidden="true">{token.pinyin}</span>}
       {enabled(options.zhuyin, unknown) && !!token.zhuyin && <span className="reading-zhuyin" aria-hidden="true">{token.zhuyin}</span>}
       <span className="reading-hanzi" role="button" tabIndex={0}
-        aria-haspopup="dialog" aria-expanded={open === index}
-        onClick={event => { event.stopPropagation(); notify('lexirise-open-word', id); setAnchor(event.currentTarget); setKeyboard(false); setOpen(open === index ? null : index); }}
-        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); notify('lexirise-open-word', id); setAnchor(event.currentTarget); setKeyboard(true); setOpen(open === index ? null : index); } }}
+        aria-haspopup={preferences.disabled ? undefined : 'dialog'} aria-expanded={open === index}
+        onPointerEnter={event => { if (!preferences.hover || preferences.disabled || event.pointerType !== 'mouse' || !window.matchMedia('(hover: hover)').matches) return; cancelHover(); const target = event.currentTarget; hoverTimer.current = setTimeout(() => { notify('lexirise-open-word', id); setAnchor(target); setKeyboard(false); setOpen(index); }, 180); }}
+        onPointerLeave={cancelHover}
+        onClick={event => { cancelHover(); if (preferences.disabled) return; event.stopPropagation(); notify('lexirise-open-word', id); setAnchor(event.currentTarget); setKeyboard(false); setOpen(open === index ? null : index); }}
+        onKeyDown={event => { if (!preferences.disabled && (event.key === 'Enter' || event.key === ' ')) { cancelHover(); event.preventDefault(); event.stopPropagation(); notify('lexirise-open-word', id); setAnchor(event.currentTarget); setKeyboard(true); setOpen(open === index ? null : index); } }}
         style={colorStyle} title={token.meaning || 'Tap for word details'}>{wordText}</span>
       {enabled(options.meanings, unknown) && !!token.meaning && <span className="reading-meaning">{shortGloss(token.meaning)}</span>}
     </span>);
@@ -625,7 +688,7 @@ const ReadingText = memo(function ReadingText({ id, text, options, current = fal
   if (cursor < text.length) parts.push(text.slice(cursor));
   const selected = open === null ? null : reading.tokens[open];
   return <><p className={`reading-text ${current ? 'current-chinese' : ''}`} lang={language} dir={capability.direction}>{parts}</p>
-    {selected && anchor && <WordSheet key={`${id}:${selected.start}`} id={id} text={text} token={selected} options={options} anchor={anchor} keyboard={keyboard}
+    {selected && anchor && !preferences.disabled && <WordSheet key={`${id}:${selected.start}`} id={id} text={text} token={selected} options={options} anchor={anchor} keyboard={keyboard} preferences={preferences} sentenceTranslation={sentenceTranslation}
       grammar={reading.grammar || []} analysisPending={!!reading.analysisPending} onGrammarChange={onGrammarChange}
       onGrammarRetry={() => void refreshReading.current?.()}
       lookup={lookup?.index === open ? lookup.value : undefined} lookupError={lookup?.index === open && !!lookup.error}
@@ -634,7 +697,11 @@ const ReadingText = memo(function ReadingText({ id, text, options, current = fal
 });
 
 
- return { ReadingText, LookupWindow:WordSheet, resetReadingCaches };
+ function LookupSheet(props: Omit<ComponentProps<typeof WordSheet>, 'preferences'>) {
+   const preferences = usePopupPreferences();
+   return preferences.disabled ? null : <WordSheet {...props} preferences={preferences}/>;
+ }
+ return { ReadingText, LookupWindow:LookupSheet, resetReadingCaches };
 }
 
 const boundReaders = new WeakMap<ReaderAdapter, ReturnType<typeof createReader>>();

@@ -5,6 +5,7 @@ import { capabilities, studyLanguages, translationLanguages, type StudyLanguage 
 import { accountToneColorPresets, globalFields, languageFields, settingsPatch, validateAccount, type AccountSettings, type JsonObject, type SettingsAdapter } from './account.js';
 import { DEFAULT_TONE_PALETTE, restoreReadingOptions, type ReadingOptions, type ReadingScope } from './reader.js';
 import { restoreTranslationLimit } from './translation-visibility.js';
+import { normalizeWordPopupSettings, type WordPopupSettings } from './word-popup.js';
 export type LocalSettings = ReadingOptions & {fontSize?:number; sourceLanguage?:StudyLanguage|'auto'; translationLanguage?:string};
 export function restoreLocalSettings(value:unknown):LocalSettings {
  const saved=value as Partial<LocalSettings>|null;
@@ -14,9 +15,25 @@ export function restoreLocalSettings(value:unknown):LocalSettings {
 }
 const labels:Record<string,string>={pinyin:'Pronunciation readings',zhuyin:'Zhuyin',toneMarks:'Separate tone marks',meanings:'Inline glosses',toneColors:'Tone colors'};
 const choices:Record<string,readonly string[]>={interfaceLanguage:['translation','device',...translationLanguages],translationLanguage:translationLanguages,wordPopupOpenMode:['click','hover'],inlineGlossMode:['off','unknown','all'],coloringMode:['learning_state','tone'],toneColorPreset:accountToneColorPresets,wordSpacing:['none','sm','md','lg'],fontSize:['sm','md','lg'],script:['simplified','traditional']};
+export function WordPopupControls({value,onChange}:{value:unknown;onChange:(value:WordPopupSettings|null)=>void}) {
+ const popup=normalizeWordPopupSettings(value);
+ const label=(id:string)=>id[0].toUpperCase()+id.slice(1);
+ function move(group:'tabs'|'definition',index:number,direction:number){const items=[...popup[group]],target=index+direction;[items[index],items[target]]=[items[target],items[index]];onChange({...popup,[group]:items});}
+ return <fieldset className="word-popup-settings"><legend>Word popup</legend>
+ <label className="reader-option-row"><span>Open on</span><select aria-label="Word popup open on" value={popup.openOn} onChange={e=>onChange({...popup,openOn:e.target.value as 'first'|'last'})}><option value="first">First enabled tab</option><option value="last">Last used tab</option></select></label>
+ {(['tabs','definition'] as const).map(group=><div key={group}><h4>{group==='tabs'?'Tabs':'Definition sections'}</h4>{popup[group].map((item,index)=><div className="word-popup-setting-row" key={item.id}>
+ <label><input type="checkbox" aria-label={`${label(item.id)} ${group==='tabs'?'tab':'section'}`} checked={item.enabled} disabled={group==='tabs'&&item.id==='definition'} onChange={e=>onChange({...popup,[group]:popup[group].map(v=>v.id===item.id?{...v,enabled:e.target.checked}:v)})}/>{label(item.id)}</label>
+ <button type="button" aria-label={`Move ${item.id} ${group} up`} disabled={index===0} onClick={()=>move(group,index,-1)}>↑</button>
+ <button type="button" aria-label={`Move ${item.id} ${group} down`} disabled={index===popup[group].length-1} onClick={()=>move(group,index,1)}>↓</button>
+ </div>)}</div>)}
+ <button type="button" onClick={()=>onChange(null)}>Reset popup to Lexirise defaults</button>
+ <small>Save to Lexirise applies these changes. Available tabs depend on the word. Definition always stays enabled.</small>
+ </fieldset>;
+}
 function Field({name,value,onChange,options}:{name:string,value:any,onChange:(v:any)=>void,options?:readonly string[]}) {
  const [raw,setRaw]=useState(JSON.stringify(value??null,null,2));const [invalid,setInvalid]=useState(false);
  useEffect(()=>{setRaw(JSON.stringify(value??null,null,2));setInvalid(false);},[value]);
+ if(name==='wordPopup')return <WordPopupControls value={value} onChange={onChange}/>;
  if((value&&typeof value==='object')||['wordPopup','customToneColors','customProficiencyColors','dictionaries'].includes(name)) return <label className="reader-option-row"><span>{name}<small>Structured setting, validated by Lexirise when saved.</small></span><textarea aria-label={name} value={raw} onChange={e=>{setRaw(e.target.value);try{const next=JSON.parse(e.target.value);onChange(next);setInvalid(false);}catch{setInvalid(true);}}} aria-invalid={invalid}/>{invalid&&<small>Invalid JSON — this edit has not been applied.</small>}</label>;
  const values=options??choices[name];
  return <label className="reader-option-row"><span><strong>{name.replace(/([A-Z])/g,' $1')}</strong></span>

@@ -34,4 +34,5 @@ export declare function createLexiriseClient(host: ClientHost): {
     normalizeLookup: (raw: Record<string, any>) => Lookup;
     loadSettings: () => Promise<AccountSettings>;
     patchSettings: (changes: Record<string, unknown>) => Promise<AccountSettings>;
+    getSettings: () => AccountSettings | null;
 };

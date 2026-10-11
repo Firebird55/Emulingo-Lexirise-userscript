@@ -2,12 +2,17 @@ import { type ReactNode } from 'react';
 import { type StudyLanguage } from './capabilities.js';
 import { type SettingsAdapter } from './account.js';
 import { type ReadingOptions } from './reader.js';
+import { type WordPopupSettings } from './word-popup.js';
 export type LocalSettings = ReadingOptions & {
     fontSize?: number;
     sourceLanguage?: StudyLanguage | 'auto';
     translationLanguage?: string;
 };
 export declare function restoreLocalSettings(value: unknown): LocalSettings;
+export declare function WordPopupControls({ value, onChange }: {
+    value: unknown;
+    onChange: (value: WordPopupSettings | null) => void;
+}): import("react/jsx-runtime").JSX.Element;
 export type ReadingOptionsControlsProps = {
     value: LocalSettings;
     onChange: (settings: LocalSettings) => void;

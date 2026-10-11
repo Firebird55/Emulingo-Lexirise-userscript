@@ -26,9 +26,11 @@ const states=new Map<number,{proficiency:number,savedExpressionId:number}>();
 let grammarChoices:Record<string,number>={};
 let credential='';
 let settingsScope='unloaded';
+let accountSettings: AccountSettings | null = null;
 function adoptSettings(value:AccountSettings){
+ accountSettings = value;
  const profile=value.languageSettings[sourceLanguage]??{};
- const scope=JSON.stringify([value.global.effectiveTranslationLanguage??value.global.translationLanguage??value.native_lang,profile.script,profile.readingAid]);
+ const scope=JSON.stringify([value.global,profile]);
  if(scope!==settingsScope){settingsScope=scope;generation++;memory.clear();pending.clear();missingGloss.clear();glossPending.clear();try{window.dispatchEvent(new Event('lexirise-account-settings'));}catch{}}
  return value;
 }
@@ -42,6 +44,7 @@ const waiting:Array<()=>void>=[];
 async function initializeClient(){ const key=await getValue('lexirise:key','');if(key!==credential){generation++;memory.clear();pending.clear();states.clear();missingGloss.clear();glossPending.clear();}credential=key;await identifyAccount(credential);grammarChoices=await getValue('lexirise:grammar:'+sourceLanguage,sourceLanguage==='zh'?await getValue('lexirise:grammar',{}):{});if(credential||host.configured?.()){try{await loadSettings();}catch{/* A settings-read failure is surfaced in the panel; it must not disable a working reader. */}} }
 function hasKey(){return Boolean(credential);}
 async function configureKey(key:string){
+  accountSettings = null;
   const next=key.trim(); if(next) await setValue('lexirise:key',next); else await deleteValue('lexirise:key');
   credential=next;await identifyAccount(next);generation++;memory.clear();pending.clear();states.clear();missingGloss.clear();glossPending.clear();cooldown=0;
   try{window.dispatchEvent(new Event('lexirise-credentials-changed'));}catch{}
@@ -172,7 +175,7 @@ function normalizeLookup(raw:Json):Lookup{
   });
   const info=raw.characterInfo||{};
   const tag=list(raw.system_tags).find(t=>typeof t==='string'&&/^HSK-\d+$/.test(t));
-  return {sourceLanguage,translationLanguage:translationsFor(raw)[0]?.target_lang??translationLanguage,translations,examples,dictionaries,hskLevel:info.statistics?.hskLevel||(tag?Number(tag.slice(4)):undefined),rank:raw.rank,frequencyScore:raw.frequency_score,alternateReadings:list(raw.multipleReadings?.alternatives),components:components(info),characterHint:textValue(info.hint),strokeCount:info.strokeCount,character:textValue(info.char)};
+  return {sourceLanguage,translationLanguage:translationsFor(raw)[0]?.target_lang??translationLanguage,translations,examples,dictionaries,hskLevel:info.statistics?.hskLevel||(tag?Number(tag.slice(4)):undefined),rank:raw.rank,frequencyScore:raw.frequency_score,alternateReadings:list(raw.multipleReadings?.alternatives),components:components(info),characterHint:textValue(info.hint),strokeCount:info.strokeCount,character:textValue(info.char),topWords:list(info.statistics?.topWords).filter(w=>typeof w?.word==='string').map(w=>({word:w.word,trad:textValue(w.trad),gloss:textValue(w.gloss),share:typeof w.share==='number'?w.share:undefined}))};
 }
 function components(info:Json){return list(info.components).filter(Boolean).map(part=>({character:textValue(part.character),type:list(part.type).filter(t=>typeof t==='string'),hint:textValue(part.hint)}));}
 async function lookup(text:string,start:number){const token=await tokenAt(text,start);return normalizeLookup(await dictionary(token.word));}
@@ -222,6 +225,7 @@ async function requestReading(text:string,action:string,params:{start?:number,in
   switch(action){
     case 'analysis':result=await analyze(text);break;
     case 'lookup':result=await lookup(text,start);break;
+    case 'notes':{const token=await tokenAt(text,start); if(!token.savedExpressionId)result={notes:''};else {const saved=await api('GET','/v1/vocabulary/'+token.savedExpressionId);result={notes:textValue(saved.notes)};}break;}
     case 'characters':result=await characters(text,start);break;
     case 'context':result=await context(text,start,body.question);break;
     case 'examples':{const details=await lookup(text,start);result={examples:await Promise.all(details.examples.slice(0,5).map(async e=>({...e,tokens:await analyze(e.text).then(r=>r.tokens).catch(()=>[])})))};break;}
@@ -247,5 +251,5 @@ async function requestReading(text:string,action:string,params:{start?:number,in
 
  async function loadSettings(){return adoptSettings(validateAccount(await api('GET','/v1/settings')));}
  async function patchSettings(changes:Record<string,unknown>){return adoptSettings(validateAccount(await api('PATCH','/v1/settings',changes)));}
- return {initializeClient,hasKey,configureKey,testConnection,requestReading,analyze,normalizeReading,normalizeGrammar,normalizeLookup,loadSettings,patchSettings};
+ return {initializeClient,hasKey,configureKey,testConnection,requestReading,analyze,normalizeReading,normalizeGrammar,normalizeLookup,loadSettings,patchSettings,getSettings:()=>accountSettings};
 }

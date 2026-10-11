@@ -14,9 +14,11 @@ export function createLexiriseClient(host) {
     let grammarChoices = {};
     let credential = '';
     let settingsScope = 'unloaded';
+    let accountSettings = null;
     function adoptSettings(value) {
+        accountSettings = value;
         const profile = value.languageSettings[sourceLanguage] ?? {};
-        const scope = JSON.stringify([value.global.effectiveTranslationLanguage ?? value.global.translationLanguage ?? value.native_lang, profile.script, profile.readingAid]);
+        const scope = JSON.stringify([value.global, profile]);
         if (scope !== settingsScope) {
             settingsScope = scope;
             generation++;
@@ -53,6 +55,7 @@ export function createLexiriseClient(host) {
     } }
     function hasKey() { return Boolean(credential); }
     async function configureKey(key) {
+        accountSettings = null;
         const next = key.trim();
         if (next)
             await setValue('lexirise:key', next);
@@ -271,7 +274,7 @@ export function createLexiriseClient(host) {
         });
         const info = raw.characterInfo || {};
         const tag = list(raw.system_tags).find(t => typeof t === 'string' && /^HSK-\d+$/.test(t));
-        return { sourceLanguage, translationLanguage: translationsFor(raw)[0]?.target_lang ?? translationLanguage, translations, examples, dictionaries, hskLevel: info.statistics?.hskLevel || (tag ? Number(tag.slice(4)) : undefined), rank: raw.rank, frequencyScore: raw.frequency_score, alternateReadings: list(raw.multipleReadings?.alternatives), components: components(info), characterHint: textValue(info.hint), strokeCount: info.strokeCount, character: textValue(info.char) };
+        return { sourceLanguage, translationLanguage: translationsFor(raw)[0]?.target_lang ?? translationLanguage, translations, examples, dictionaries, hskLevel: info.statistics?.hskLevel || (tag ? Number(tag.slice(4)) : undefined), rank: raw.rank, frequencyScore: raw.frequency_score, alternateReadings: list(raw.multipleReadings?.alternatives), components: components(info), characterHint: textValue(info.hint), strokeCount: info.strokeCount, character: textValue(info.char), topWords: list(info.statistics?.topWords).filter(w => typeof w?.word === 'string').map(w => ({ word: w.word, trad: textValue(w.trad), gloss: textValue(w.gloss), share: typeof w.share === 'number' ? w.share : undefined })) };
     }
     function components(info) { return list(info.components).filter(Boolean).map(part => ({ character: textValue(part.character), type: list(part.type).filter(t => typeof t === 'string'), hint: textValue(part.hint) })); }
     async function lookup(text, start) { const token = await tokenAt(text, start); return normalizeLookup(await dictionary(token.word)); }
@@ -350,6 +353,16 @@ export function createLexiriseClient(host) {
             case 'lookup':
                 result = await lookup(text, start);
                 break;
+            case 'notes': {
+                const token = await tokenAt(text, start);
+                if (!token.savedExpressionId)
+                    result = { notes: '' };
+                else {
+                    const saved = await api('GET', '/v1/vocabulary/' + token.savedExpressionId);
+                    result = { notes: textValue(saved.notes) };
+                }
+                break;
+            }
             case 'characters':
                 result = await characters(text, start);
                 break;
@@ -396,5 +409,5 @@ export function createLexiriseClient(host) {
     }
     async function loadSettings() { return adoptSettings(validateAccount(await api('GET', '/v1/settings'))); }
     async function patchSettings(changes) { return adoptSettings(validateAccount(await api('PATCH', '/v1/settings', changes))); }
-    return { initializeClient, hasKey, configureKey, testConnection, requestReading, analyze, normalizeReading, normalizeGrammar, normalizeLookup, loadSettings, patchSettings };
+    return { initializeClient, hasKey, configureKey, testConnection, requestReading, analyze, normalizeReading, normalizeGrammar, normalizeLookup, loadSettings, patchSettings, getSettings: () => accountSettings };
 }

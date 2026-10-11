@@ -9,6 +9,10 @@ See [installation](INSTALL.md), [installer guide](INSTALL.html), [contributing w
 Exports: `ReadingOptionsControls`, `ReadingOptionsDialog`, `SettingsPanel`, `createReader` (reader and identical LookupWindow), `createLexiriseClient`, account PATCH helpers, scoped CSS, types and versioned 31-language capabilities.
 React is a peer dependency. Each host owns credential storage, transport, popup portal and local preferences. No credential belongs in this repository.
 
+Pass a read-only `loadSettings` function to `createReader` to follow the account's `languageSettings[sourceLanguage].wordPopup` layout and global hover/disable preferences. Tabs and definition sections follow the website's ordering, enable flags, readable-definition fallback and first/last-tab behavior. Missing items use Lexirise defaults. The settings panel provides reorder and enable controls; only Save to Lexirise sends a PATCH, and unknown IDs are rejected before transport. Host settings reloads notify readers through `lexirise-account-settings`.
+
+Pass the host's sentence translation as `sentenceTranslation`. The Words tab uses character dictionary `statistics.topWords`; Notes reads saved vocabulary notes and links to Lexirise for editing. Tabs requiring word-specific data appear when that data is available. Existing local reading preferences and grammar choices remain independent of account popup layout.
+
 `npm ci && npm run check`
 See [release runbook](RELEASE.md). Published package copies in sibling applications are generated; edit this repository, never a consumer's vendor directory.
 

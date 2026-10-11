@@ -16,6 +16,7 @@
     "test:browser": "npm run build && node scripts/browser-e2e.mjs",
     "audit:public": "node scripts/public-audit.mjs",
     "test:firefox": "npm run build && node scripts/firefox-e2e.mjs",
+    "test:popup": "npm run build && node scripts/popup-e2e.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "node scripts/preview.mjs",
     "check": "npm run typecheck && npm test && npm run build",

@@ -1,5 +1,6 @@
 
 import { isStudyLanguage, type StudyLanguage } from './capabilities.js';
+import { validateWordPopupPatch } from './word-popup.js';
 export type JsonObject = Record<string, any>;
 export type AccountSettings = { languages:StudyLanguage[]; native_lang?:string; global:JsonObject; languageSettings:Record<string,JsonObject> };
 export type SettingsAdapter = { load:()=>Promise<AccountSettings>; patch:(changes:JsonObject)=>Promise<AccountSettings> };
@@ -31,6 +32,7 @@ export function settingsPatch(before:AccountSettings,after:AccountSettings):Json
  for(const [lang,settings] of Object.entries(after.languageSettings)) {
   if(!isStudyLanguage(lang)) continue;
   const changes=diffFields(before.languageSettings[lang]??{},settings,languageFields);
+  if('wordPopup' in changes) validateWordPopupPatch(changes.wordPopup);
   if('toneColorPreset' in changes && changes.toneColorPreset!==null && !accountToneColorPresets.includes(changes.toneColorPreset)) throw new Error('Choose a supported Lexirise account tone palette.');
   if(Object.keys(changes).length)languageSettings[lang]=changes;
  }
