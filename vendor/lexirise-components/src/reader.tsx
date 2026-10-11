@@ -291,7 +291,7 @@ function WordSheet({ id, text, token, lookup, lookupError, options, anchor, keyb
     if (tab !== 'notes' || notes || notesError) return;
     const controller = new AbortController();
     requestReading(text, 'notes', { start: token.start }, { signal: controller.signal, cache: 'no-store' })
-      .then(response => { if (!response.ok) throw new Error('Notes unavailable'); return response.json(); })
+      .then(response => { if (!response.ok) throw new Error('Notes unavailable'); return response.json() as Promise<{ notes: string }>; })
       .then(setNotes).catch(() => { if (!controller.signal.aborted) setNotesError(true); });
     return () => controller.abort();
   }, [tab, notes, notesError, token.start, text]);
