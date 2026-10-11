@@ -2,7 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect, useState, useRef } from 'react';
 import { capabilities, studyLanguages, translationLanguages } from './capabilities.js';
-import { globalFields, languageFields, settingsPatch, validateAccount } from './account.js';
+import { accountToneColorPresets, globalFields, languageFields, settingsPatch, validateAccount } from './account.js';
 import { DEFAULT_TONE_PALETTE, restoreReadingOptions } from './reader.js';
 import { restoreTranslationLimit } from './translation-visibility.js';
 export function restoreLocalSettings(value) {
@@ -12,7 +12,7 @@ export function restoreLocalSettings(value) {
         translationLanguage: translationLanguages.includes(saved?.translationLanguage) ? saved.translationLanguage : 'en' };
 }
 const labels = { pinyin: 'Pronunciation readings', zhuyin: 'Zhuyin', toneMarks: 'Separate tone marks', meanings: 'Inline glosses', toneColors: 'Tone colors' };
-const choices = { interfaceLanguage: ['translation', 'device', ...translationLanguages], translationLanguage: translationLanguages, wordPopupOpenMode: ['click', 'hover'], inlineGlossMode: ['off', 'unknown', 'all'], coloringMode: ['learning_state', 'tone'], toneColorPreset: ['lexirise', 'pleco', 'migaku', 'custom'], wordSpacing: ['none', 'sm', 'md', 'lg'], fontSize: ['sm', 'md', 'lg'], script: ['simplified', 'traditional'] };
+const choices = { interfaceLanguage: ['translation', 'device', ...translationLanguages], translationLanguage: translationLanguages, wordPopupOpenMode: ['click', 'hover'], inlineGlossMode: ['off', 'unknown', 'all'], coloringMode: ['learning_state', 'tone'], toneColorPreset: accountToneColorPresets, wordSpacing: ['none', 'sm', 'md', 'lg'], fontSize: ['sm', 'md', 'lg'], script: ['simplified', 'traditional'] };
 function Field({ name, value, onChange, options }) {
     const [raw, setRaw] = useState(JSON.stringify(value ?? null, null, 2));
     const [invalid, setInvalid] = useState(false);

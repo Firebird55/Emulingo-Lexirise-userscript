@@ -1,6 +1,9 @@
 import { isStudyLanguage } from './capabilities.js';
 export const globalFields = ['translationLanguage', 'interfaceLanguage', 'disableWordPopups', 'wordPopupOpenMode', 'useCustomProficiencyColors', 'customProficiencyColors'];
 export const languageFields = ['readingAid', 'readingAboveWords', 'script', 'inlineGlossMode', 'coloringMode', 'toneColorPreset', 'customToneColors', 'colorKnownWordsToo', 'emphasizeFrequencyLevel', 'wordSpacing', 'ttsOnWordClick', 'automaticGrammarHighlighting', 'highlightProperNouns', 'customFont', 'fontSize', 'segmentByCharacter', 'dictionariesEnabled', 'dictionaries', 'wordPopup'];
+// Reviewed against the public Lexirise settings module on 2026-10-11.
+// These account presets are separate from the device's local reading palette.
+export const accountToneColorPresets = ['lexirise', 'pleco', 'mdbg', 'colorblind', 'custom'];
 function equal(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 function diffFields(before, after, fields) {
     const patch = {};
@@ -34,6 +37,8 @@ export function settingsPatch(before, after) {
         if (!isStudyLanguage(lang))
             continue;
         const changes = diffFields(before.languageSettings[lang] ?? {}, settings, languageFields);
+        if ('toneColorPreset' in changes && changes.toneColorPreset !== null && !accountToneColorPresets.includes(changes.toneColorPreset))
+            throw new Error('Choose a supported Lexirise account tone palette.');
         if (Object.keys(changes).length)
             languageSettings[lang] = changes;
     }

@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { capabilities, studyLanguages, translationLanguages, type StudyLanguage } from './capabilities.js';
-import { globalFields, languageFields, settingsPatch, validateAccount, type AccountSettings, type JsonObject, type SettingsAdapter } from './account.js';
+import { accountToneColorPresets, globalFields, languageFields, settingsPatch, validateAccount, type AccountSettings, type JsonObject, type SettingsAdapter } from './account.js';
 import { DEFAULT_TONE_PALETTE, restoreReadingOptions, type ReadingOptions, type ReadingScope } from './reader.js';
 import { restoreTranslationLimit } from './translation-visibility.js';
 export type LocalSettings = ReadingOptions & {fontSize?:number; sourceLanguage?:StudyLanguage|'auto'; translationLanguage?:string};
@@ -13,7 +13,7 @@ export function restoreLocalSettings(value:unknown):LocalSettings {
  translationLanguage:translationLanguages.includes(saved?.translationLanguage as any)?saved!.translationLanguage:'en'};
 }
 const labels:Record<string,string>={pinyin:'Pronunciation readings',zhuyin:'Zhuyin',toneMarks:'Separate tone marks',meanings:'Inline glosses',toneColors:'Tone colors'};
-const choices:Record<string,readonly string[]>={interfaceLanguage:['translation','device',...translationLanguages],translationLanguage:translationLanguages,wordPopupOpenMode:['click','hover'],inlineGlossMode:['off','unknown','all'],coloringMode:['learning_state','tone'],toneColorPreset:['lexirise','pleco','migaku','custom'],wordSpacing:['none','sm','md','lg'],fontSize:['sm','md','lg'],script:['simplified','traditional']};
+const choices:Record<string,readonly string[]>={interfaceLanguage:['translation','device',...translationLanguages],translationLanguage:translationLanguages,wordPopupOpenMode:['click','hover'],inlineGlossMode:['off','unknown','all'],coloringMode:['learning_state','tone'],toneColorPreset:accountToneColorPresets,wordSpacing:['none','sm','md','lg'],fontSize:['sm','md','lg'],script:['simplified','traditional']};
 function Field({name,value,onChange,options}:{name:string,value:any,onChange:(v:any)=>void,options?:readonly string[]}) {
  const [raw,setRaw]=useState(JSON.stringify(value??null,null,2));const [invalid,setInvalid]=useState(false);
  useEffect(()=>{setRaw(JSON.stringify(value??null,null,2));setInvalid(false);},[value]);

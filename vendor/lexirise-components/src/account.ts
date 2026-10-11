@@ -5,6 +5,9 @@ export type AccountSettings = { languages:StudyLanguage[]; native_lang?:string; 
 export type SettingsAdapter = { load:()=>Promise<AccountSettings>; patch:(changes:JsonObject)=>Promise<AccountSettings> };
 export const globalFields = ['translationLanguage','interfaceLanguage','disableWordPopups','wordPopupOpenMode','useCustomProficiencyColors','customProficiencyColors'] as const;
 export const languageFields = ['readingAid','readingAboveWords','script','inlineGlossMode','coloringMode','toneColorPreset','customToneColors','colorKnownWordsToo','emphasizeFrequencyLevel','wordSpacing','ttsOnWordClick','automaticGrammarHighlighting','highlightProperNouns','customFont','fontSize','segmentByCharacter','dictionariesEnabled','dictionaries','wordPopup'] as const;
+// Reviewed against the public Lexirise settings module on 2026-10-11.
+// These account presets are separate from the device's local reading palette.
+export const accountToneColorPresets = ['lexirise','pleco','mdbg','colorblind','custom'] as const;
 function equal(a:unknown,b:unknown):boolean {return JSON.stringify(a)===JSON.stringify(b);}
 function diffFields(before:JsonObject,after:JsonObject,fields:readonly string[]):JsonObject {
  const patch:JsonObject={};
@@ -28,6 +31,7 @@ export function settingsPatch(before:AccountSettings,after:AccountSettings):Json
  for(const [lang,settings] of Object.entries(after.languageSettings)) {
   if(!isStudyLanguage(lang)) continue;
   const changes=diffFields(before.languageSettings[lang]??{},settings,languageFields);
+  if('toneColorPreset' in changes && changes.toneColorPreset!==null && !accountToneColorPresets.includes(changes.toneColorPreset)) throw new Error('Choose a supported Lexirise account tone palette.');
   if(Object.keys(changes).length)languageSettings[lang]=changes;
  }
  if(Object.keys(languageSettings).length)patch.languageSettings=languageSettings;
