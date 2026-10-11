@@ -53,7 +53,7 @@ npm run test:firefox
 npm run audit:public
 ```
 
-Node.js 24 is recommended. A clean public checkout builds using the pinned local package in `vendor/lexirise-components`; no private repository login is needed. Shared code remains generated: propose changes through the documented maintainer workflow, not by committing edits to vendor.
+Node.js 24 is recommended. A clean public checkout builds using the pinned local package in `vendor/lexirise-components`; no separate repository login is needed. Reading controls, account settings and word lookups use the same released [shared source](https://github.com/Firebird55/Lexirise-shared-components) as the game toolkit. Shared code remains generated: propose changes through the documented maintainer workflow, not by committing edits to vendor.
 
 Mock previews: `npm run preview` → http://127.0.0.1:4317/play. Do not put real account keys into a public issue, screenshot, fixture or pull request.
 

@@ -15,7 +15,7 @@ Use the repository's issue templates. Include browser/userscript-manager version
 5. Add a focused regression test. Mock account writes and retain native game actions, Firefox behavior, Shadow DOM isolation and source-language semantics.
 6. Commit completed logical changes and explain the change, tests and any limitations in the pull request.
 
-The vendored shared package is a generated, versioned import. Its canonical source is maintained separately by Firebird55. For a shared reader/settings/lookup change, open an issue or attach a proposed patch; a maintainer implements/tests it in that source repository, releases the package and imports it into both hosts. Do not edit or submit generated vendor files directly. A public checkout needs no access to the private canonical repository.
+The vendored shared package is a generated, versioned import. Its canonical source is the public [Lexirise shared components repository](https://github.com/Firebird55/Lexirise-shared-components), maintained by Firebird55. Propose shared reader/settings/lookup changes there; a maintainer tests and releases the package, then imports it into Emulingo and the game toolkit together. Do not edit or submit generated vendor files directly. A clean Emulingo checkout builds from its pinned package without a separate repository login.
 
 ## Releases
 

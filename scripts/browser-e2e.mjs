@@ -52,6 +52,15 @@ try{
    await page.getByRole('button',{name:'Save to Lexirise',exact:true}).click();await page.getByText('Saved to Lexirise.',{exact:true}).waitFor();
    assert.deepEqual(writes.at(-1),{global:{translationLanguage:translation},languageSettings:{nl:{fontSize:font}}});
    await page.getByLabel('fontSize',{exact:true}).selectOption('sm');await page.getByRole('button',{name:'Discard account changes',exact:true}).click();assert.equal(await page.getByLabel('fontSize',{exact:true}).inputValue(),font);
+   await page.getByLabel('Edit account language').selectOption('zh');
+   const presets=page.getByLabel('toneColorPreset',{exact:true});
+   const options=await presets.locator('option').evaluateAll(nodes=>nodes.map(node=>node.value));
+   assert(options.includes('mdbg')&&options.includes('colorblind'),'Current account presets appear in the shared UI');
+   const palette=await presets.inputValue()==='colorblind'?'mdbg':'colorblind';
+   const beforeWrites=writes.length;await presets.selectOption(palette);
+   assert.equal(writes.length,beforeWrites,'Selecting a palette never saves automatically');
+   await page.getByRole('button',{name:'Save to Lexirise',exact:true}).click();await page.getByText('Saved to Lexirise.',{exact:true}).waitFor();
+   assert.deepEqual(writes.at(-1),{languageSettings:{zh:{toneColorPreset:palette}}},'Palette save preserves global and other-language settings');
   }
   await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
   if(mode==='panel'&&zoom===1&&pw===1920){
