@@ -21,6 +21,7 @@ jobs:
       - run: npm run check
       - run: npx playwright install --with-deps chromium firefox
       - run: node scripts/browser-e2e.mjs
+      - run: node scripts/popup-e2e.mjs
       - run: npm run test:firefox
       - run: node scripts/secret-check.mjs
       - run: npm run audit:public

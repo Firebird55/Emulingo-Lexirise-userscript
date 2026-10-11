@@ -14,6 +14,7 @@ Language-aware readings and word lookups for **[Emulingo](https://emulingo.com)*
 
 - Readings, proficiency colors and inline meanings in Emulingo's translation feed.
 - A shared lookup window: definitions, pronunciation, examples, contextual help, similar words, vocabulary actions and applicable grammar/character information.
+- Popup tabs, definition sections, first/last opening and desktop hover follow your Lexirise account settings. Translation uses the native sentence translation; Words uses character dictionary data, and Notes reads saved vocabulary notes when enabled. Reorder or enable popup items in account settings, then explicitly save to Lexirise.
 - Language-aware settings for 31 Lexirise study languages, with an explicit content-language override when Emulingo metadata is missing.
 - Account settings reload/save/discard. Local display options apply immediately; only **Save to Lexirise** writes account preferences.
 - Desktop sidebar and mobile layouts, touch targets, narrow screens, landscape and browser zoom. Native Emulingo controls remain available.

@@ -91,7 +91,7 @@ function LineView({line,settings,revision}:{line:Line,settings:Settings,revision
   const hide=!revealed&&summary?.text===line.text&&shouldHideTranslation(settings.hideEnglishAt,summary.unknownWords);
   // English remains the native node so native card actions continue to work.
   if(line.english){if(hide)line.english.dataset.lxEnglishHidden='';else delete line.english.dataset.lxEnglishHidden;}
-  return <><ReadingText key={`${revision}:${line.text}`} id={line.id} text={line.text} current sourceLanguage={line.language} translationLanguage={settings.translationLanguage??'en'} options={settings} onSummary={onSummary}/>
+  return <><ReadingText key={`${revision}:${line.text}`} id={line.id} text={line.text} sentenceTranslation={line.english?.textContent??undefined} current sourceLanguage={line.language} translationLanguage={settings.translationLanguage??'en'} options={settings} onSummary={onSummary}/>
     {hide&&<button className="lexirise-english-reveal" type="button" onClick={e=>{e.stopPropagation();setRevealed(true);}}>Show English translation</button>}</>;
 }
 export async function start(){
