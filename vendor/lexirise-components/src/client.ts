@@ -50,11 +50,12 @@ async function configureKey(key:string){
   try{window.dispatchEvent(new Event('lexirise-credentials-changed'));}catch{}
 }
 async function api(method:string,path:string,payload?:unknown):Promise<Json>{
+  const revision=generation;
   if(!host.configured?.() && !credential) throw new Error('Add your Lexirise API key in Lexirise settings.');
   if(Date.now()<cooldown) throw new Error('Lexirise request limit reached. Wait a minute, then retry.');
   if(running>=4) await new Promise<void>(resolve=>waiting.push(resolve));
+  if(revision!==generation) { waiting.shift()?.(); throw new Error('Lexirise session changed. Retry after unlocking.'); }
   running++;
-  const key=credential, revision=generation;
   try{
     const result=await host.request(path,method,payload);
     if(revision!==generation) throw new Error('API key changed. Retry the request.');
@@ -251,5 +252,6 @@ async function requestReading(text:string,action:string,params:{start?:number,in
 
  async function loadSettings(){return adoptSettings(validateAccount(await api('GET','/v1/settings')));}
  async function patchSettings(changes:Record<string,unknown>){return adoptSettings(validateAccount(await api('PATCH','/v1/settings',changes)));}
- return {initializeClient,hasKey,configureKey,testConnection,requestReading,analyze,normalizeReading,normalizeGrammar,normalizeLookup,loadSettings,patchSettings,getSettings:()=>accountSettings};
+ function clearSession(){generation++;credential='';accountSettings=null;memory.clear();pending.clear();states.clear();missingGloss.clear();glossPending.clear();grammarChoices={};cooldown=0;while(waiting.length)waiting.shift()?.();}
+ return {initializeClient,hasKey,configureKey,testConnection,requestAccount:api,requestReading,analyze,normalizeReading,normalizeGrammar,normalizeLookup,loadSettings,patchSettings,getSettings:()=>accountSettings,clearSession};
 }

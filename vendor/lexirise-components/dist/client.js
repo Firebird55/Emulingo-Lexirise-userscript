@@ -76,14 +76,18 @@ export function createLexiriseClient(host) {
         catch { }
     }
     async function api(method, path, payload) {
+        const revision = generation;
         if (!host.configured?.() && !credential)
             throw new Error('Add your Lexirise API key in Lexirise settings.');
         if (Date.now() < cooldown)
             throw new Error('Lexirise request limit reached. Wait a minute, then retry.');
         if (running >= 4)
             await new Promise(resolve => waiting.push(resolve));
+        if (revision !== generation) {
+            waiting.shift()?.();
+            throw new Error('Lexirise session changed. Retry after unlocking.');
+        }
         running++;
-        const key = credential, revision = generation;
         try {
             const result = await host.request(path, method, payload);
             if (revision !== generation)
@@ -409,5 +413,7 @@ export function createLexiriseClient(host) {
     }
     async function loadSettings() { return adoptSettings(validateAccount(await api('GET', '/v1/settings'))); }
     async function patchSettings(changes) { return adoptSettings(validateAccount(await api('PATCH', '/v1/settings', changes))); }
-    return { initializeClient, hasKey, configureKey, testConnection, requestReading, analyze, normalizeReading, normalizeGrammar, normalizeLookup, loadSettings, patchSettings, getSettings: () => accountSettings };
+    function clearSession() { generation++; credential = ''; accountSettings = null; memory.clear(); pending.clear(); states.clear(); missingGloss.clear(); glossPending.clear(); grammarChoices = {}; cooldown = 0; while (waiting.length)
+        waiting.shift()?.(); }
+    return { initializeClient, hasKey, configureKey, testConnection, requestAccount: api, requestReading, analyze, normalizeReading, normalizeGrammar, normalizeLookup, loadSettings, patchSettings, getSettings: () => accountSettings, clearSession };
 }

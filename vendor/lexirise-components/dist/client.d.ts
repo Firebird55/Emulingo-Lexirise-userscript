@@ -24,6 +24,7 @@ export declare function createLexiriseClient(host: ClientHost): {
         connected: boolean;
         message: string;
     }>;
+    requestAccount: (method: string, path: string, payload?: unknown) => Promise<Record<string, any>>;
     requestReading: (text: string, action: string, params?: {
         start?: number;
         index?: number;
@@ -35,4 +36,5 @@ export declare function createLexiriseClient(host: ClientHost): {
     loadSettings: () => Promise<AccountSettings>;
     patchSettings: (changes: Record<string, unknown>) => Promise<AccountSettings>;
     getSettings: () => AccountSettings | null;
+    clearSession: () => void;
 };
